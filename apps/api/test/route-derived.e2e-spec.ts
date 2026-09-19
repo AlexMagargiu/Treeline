@@ -171,13 +171,28 @@ interface Derived {
 /** Thrown to roll the transaction back once every row has been read out of it. */
 class Rollback extends Error {}
 
+// The test shares the database with the seeded catalogue, which holds 15 massifs of its
+// own, and massif.name is unique. Six of the sheet's labels collide with a seeded name, so
+// every massif this test inserts is prefixed. The prefix is also how the test finds its
+// own rows again: it reads the view through these massifs rather than through the whole
+// table, so 185 seeded routes beside its own do not change a single comparison.
+const MASSIF_PREFIX = 'e2e fixture: ';
+
+// route.seed_id is unique and the seed owns 1 to 185, so the test writes its own rows an
+// offset above that range and subtracts the offset again on the way out. The column is
+// what ORDER BY sorts on and what the sheet rows are keyed by, so it cannot simply be
+// left null.
+const SEED_ID_OFFSET = 1_000_000;
+
 async function load(tx: Prisma.TransactionClient, routes: Row[], stations: Row[]) {
   const massifNames = [...new Set(routes.map((route) => route.Massif))];
   const massifs = await tx.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
     INSERT INTO massif (name)
-    VALUES ${Prisma.join(massifNames.map((name) => Prisma.sql`(${name})`))}
+    VALUES ${Prisma.join(massifNames.map((name) => Prisma.sql`(${MASSIF_PREFIX + name})`))}
     RETURNING id, name`);
-  const massifId = new Map(massifs.map((massif) => [massif.name, massif.id]));
+  const massifId = new Map(
+    massifs.map((massif) => [massif.name.slice(MASSIF_PREFIX.length), massif.id]),
+  );
 
   // The Stations sheet carries no coordinates, so the fixture has none either. The view
   // never reads the geometry, and inventing one would put a station somewhere it is not.
@@ -229,11 +244,13 @@ async function load(tx: Prisma.TransactionClient, routes: Row[], stations: Row[]
           ${route.Notes || null},
           'own'::geometry_source,
           'own'::licence,
-          ${Number(route.ID)})`,
+          ${SEED_ID_OFFSET + Number(route.ID)})`,
       ),
     )}
     RETURNING id, seed_id`);
-  const routeId = new Map(inserted.map((route) => [route.seed_id, route.id]));
+  const routeId = new Map(
+    inserted.map((route) => [route.seed_id - SEED_ID_OFFSET, route.id]),
+  );
 
   await tx.$executeRaw(Prisma.sql`
     INSERT INTO route_access (route_id, access_point_id, role, mode)
@@ -251,13 +268,19 @@ async function load(tx: Prisma.TransactionClient, routes: Row[], stations: Row[]
     )}`);
 
   // pack_kg is zero, so the mass in the energy formula is the body mass alone and the
-  // figures reproduce the sheet's four kcal columns.
-  await tx.$executeRaw`INSERT INTO profile (weight_kg, pack_kg) VALUES (130, 0)`;
+  // figures reproduce the sheet's four kcal columns. owner_id defaults to the one seed
+  // user, so on a seeded database this updates that row rather than colliding with it,
+  // and the rollback puts the seeded weight and pack back.
+  await tx.$executeRaw`
+    INSERT INTO profile (weight_kg, pack_kg) VALUES (130, 0)
+    ON CONFLICT (owner_id) DO UPDATE SET weight_kg = 130, pack_kg = 0`;
 }
 
 function query(tx: Prisma.TransactionClient) {
   return tx.$queryRaw<Derived[]>`
-    SELECT r.seed_id,
+    -- Cast back to int: the offset binds as a bigint, and an int8 result would reach
+    -- JavaScript as a BigInt that no longer matches the sheet rows keyed by number.
+    SELECT (r.seed_id - ${SEED_ID_OFFSET})::int AS seed_id,
            d.train_h::text       AS train_h,
            d.met::text           AS met,
            d.moving_now_h::text  AS moving_now_h,
@@ -277,6 +300,7 @@ function query(tx: Prisma.TransactionClient) {
            d.kcal_net_high::text AS kcal_net_high
     FROM route_derived d
     JOIN route r ON r.id = d.route_id
+    JOIN massif m ON m.id = r.massif_id AND m.name LIKE ${MASSIF_PREFIX + '%'}
     ORDER BY r.seed_id`;
 }
 
@@ -307,10 +331,20 @@ describe('route_derived', () => {
 
   afterAll(() => prisma.$disconnect());
 
+  // Counting every route would only prove the database is empty, which stopped being true
+  // the day the catalogue was seeded. What the rollback has to prove is that this test
+  // left nothing of its own, so it counts its own rows: the prefixed massifs and the
+  // routes hanging off them.
   it('leaves no fixture behind', async () => {
-    const [{ count }] = await prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT count(*) FROM route`;
-    expect(Number(count)).toBe(0);
+    const [{ massifs, routes: left }] = await prisma.$queryRaw<
+      { massifs: bigint; routes: bigint }[]
+    >`
+      SELECT (SELECT count(*) FROM massif
+              WHERE name LIKE ${MASSIF_PREFIX + '%'}) AS massifs,
+             (SELECT count(*) FROM route r
+              JOIN massif m ON m.id = r.massif_id
+              WHERE m.name LIKE ${MASSIF_PREFIX + '%'}) AS routes`;
+    expect({ massifs: Number(massifs), routes: Number(left) }).toEqual({ massifs: 0, routes: 0 });
   });
 
   it('reproduces the spreadsheet', () => {

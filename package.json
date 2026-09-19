@@ -2,16 +2,24 @@
   "name": "treeline",
   "private": true,
   "packageManager": "pnpm@9.15.4",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint && eslint prisma/seed.ts",
+    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.seed.json --noEmit",
     "test": "pnpm -r test",
     "test:e2e": "pnpm --filter @treeline/api test:e2e"
   },
   "devDependencies": {
+    "@eslint/js": "9.23.0",
     "@prisma/client": "6.5.0",
+    "@types/node": "22.13.14",
+    "eslint": "9.23.0",
     "prisma": "6.5.0",
-    "typescript": "5.7.3"
+    "tsx": "4.19.3",
+    "typescript": "5.7.3",
+    "typescript-eslint": "8.28.0"
   }
 }

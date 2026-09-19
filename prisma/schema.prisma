@@ -134,6 +134,12 @@ model Massif {
   name      String                                   @unique
   // Null for now. A human draws the polygons, which is a later unit of work.
   area      Unsupported("geography(Polygon, 4326)")?
+  // Five polygons come from OpenStreetMap relations and are ODbL, ten are drawn. Both
+  // nullable: a polygon drawn later has neither until somebody says so. note carries the
+  // detail the enum cannot, such as which relation and how far it was simplified.
+  source    GeometrySource?
+  licence   Licence?
+  note      String?
   createdAt DateTime                                 @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime                                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -149,6 +155,10 @@ model AccessPoint {
   point      Unsupported("geography(Point, 4326)")
   altitudeM  Int?                                  @map("altitude_m")
   note       String?
+  // Thirty station points come from OpenStreetMap and one is approximate. Nullable for
+  // the same reason as on massif.
+  source     GeometrySource?
+  licence    Licence?
   createdAt  DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime                              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
