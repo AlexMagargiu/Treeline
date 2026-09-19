@@ -1,0 +1,12 @@
+// Models arrive with the database prompt. PostGIS is enabled by hand in the first
+// migration, and spatial columns are declared Unsupported("geography(...)").
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

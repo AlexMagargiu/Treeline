@@ -1,0 +1,189 @@
+# Treeline runs as its own Compose project on a shared box. Its own volumes, its own
+# container names, its own Postgres inside a container, never the host's.
+# Every long-running service declares mem_limit: a sister project's runaway OOM'd this
+# machine in June 2026 and degraded a trading bot.
+name: treeline
+
+services:
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      TREELINE_HOST: ${TREELINE_HOST}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    mem_limit: 64m
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: ghcr.io/alexmagargiu/treeline-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "-", "http://127.0.0.1:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    mem_limit: 512m
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/alexmagargiu/treeline-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_BUCKET: ${S3_BUCKET}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "-", "http://127.0.0.1:3001/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    mem_limit: 512m
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/alexmagargiu/treeline-api:${IMAGE_TAG:-latest}
+    command: ["node", "dist/worker.js"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_BUCKET: ${S3_BUCKET}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 384m
+
+  db:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    # Sized for the 1g limit below.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - max_connections=50
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    mem_limit: 1g
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # noeviction, because this holds a job queue and dropping jobs silently is worse
+    # than failing loudly.
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    mem_limit: 192m
+
+  storage:
+    # Docker Hub no longer carries minio/minio. quay.io is MinIO's own registry, and the
+    # release is pinned so a deploy never moves versions underneath us.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    mem_limit: 256m
+
+  backup:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup.sh"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS}
+    volumes:
+      - ./infra/backup.sh:/usr/local/bin/backup.sh:ro
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 64m
+
+  # One shot, before the API starts. Not an entrypoint, so a failed migration stops
+  # the deploy instead of crash-looping a container.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/alexmagargiu/treeline-api:${IMAGE_TAG:-latest}
+    profiles: ["deploy"]
+    command:
+      - ./node_modules/.bin/prisma
+      - migrate
+      - deploy
+      - --schema=/app/prisma/schema.prisma
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 512m
+
+volumes:
+  db_data:
+  minio_data:
+  caddy_data:
+  caddy_config:
+  # Declared now, mounted by the section 4 prompt. It grows to tens of gigabytes, so it is
+  # named here to keep it off the container layer and out of a later migration.
+  tiles:
+  backups:

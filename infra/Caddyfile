@@ -1,0 +1,17 @@
+{$TREELINE_HOST} {
+	encode
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	# The API keeps its /api prefix, so the same path works with and without Caddy.
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
