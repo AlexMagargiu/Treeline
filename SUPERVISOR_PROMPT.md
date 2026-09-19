@@ -393,7 +393,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 | # | Section | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Infrastructure | prompt written | `CODING_PROMPT_INFRA.md`. Compose, Caddy, Actions, volumes, backups, and the deploy. Hardening left out on purpose, see "Deployment and servers". The host is the shared Hetzner box; the user runs every command against it |
-| 2 | Database and seed | schema shipped and reviewed | Eleven tables, eleven enums, four GiST indexes and the PostGIS migration, from `CODING_PROMPT_SCHEMA.md`. Still to come: the derived view, then the seed, which stays blocked on the massif list and the diacritics pass |
+| 2 | Database and seed | schema shipped, view prompt written | Eleven tables, eleven enums, four GiST indexes and the PostGIS migration shipped in `d630375`. `CODING_PROMPT_VIEW.md` covers the derived view, two columns on `profile` for the energy figure, the CSV fixtures and a 185-row equality test. The seed follows, and stays blocked on the massif list and the diacritics pass |
 | 3 | API | not started | Auth, massifs, routes, route detail, patch with edit log, saved filters, the derived view |
 | 4 | Tiles | not started | Romania PMTiles, Bucegi contours, Bucegi terrain-RGB, one rebuild script |
 | 5 | Frontend | not started | Middleware, PWA, country map, bottom sheet, filters, trail page. Every prompt here is a frontend prompt: `docs/design.md` governs it |
@@ -484,9 +484,14 @@ These are written down because each one is cheap to avoid now and expensive to f
    shape that survives the change.
 6. **Derived columns are derived.** Store km, ascent, terrain, technical. Compute the rest
    in the view. If correcting a distance does not move the difficulty, the view is wrong.
-7. **The sheet is the reference for the view, and the sheet rounds.** The kcal columns
-   round to ten. Compare the view against the sheet with a tolerance, not for equality, and
-   write the tolerance into the test.
+7. **The sheet is the reference for the view, and the view can match it exactly.** Measured
+   on 2026-09-19 against all 185 rows: the derivation contract reproduces every derived
+   column with zero mismatches, the four kcal columns included, 740 energy values in all.
+   This holds only in exact decimal arithmetic. In IEEE doubles, fourteen kcal values move
+   by ten, eight of them from banker's rounding and six from a product landing a hair under
+   a half (route 52 at 130 kg is exactly 6825). So: compute the view in `numeric`, never
+   `double precision`, use `round(x, -1)`, and write the test for equality rather than a
+   tolerance. A tolerance would hide the float bug rather than prevent it.
 8. **`Season` in the sheet is a window, not a season.** See the seed decisions.
 9. **Search has to match without diacritics.** Nobody types ș and ț on a phone in the rain.
    Match both forms, and match `name_ro` and `name_en`.
