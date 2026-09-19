@@ -57,12 +57,28 @@ For a multi-step task, state the plan as steps with a check against each one.
 
 ### 6. Servers
 
-There is no deployment host yet. Everything runs locally under Docker Compose.
+The VPS exists. It is a Hetzner box, 4 vCPU, 8 GB RAM, 80 GB SSD, reached as
+`root` at `89.167.90.189` with the key `~/.ssh/github`. The deploy pattern to
+copy is `~/repos/weather_arb/scripts/deploy.sh`.
 
-When the VPS exists, Claude never touches it: no SSH, no `scp`, no `rsync`, no
-`curl` against the deployed hostname, not even read-only. Server output can carry
+**Claude never touches it.** No SSH, no `scp`, no `rsync`, no `curl` against the
+address or the deployed hostname, not even read-only. Server output can carry
 credentials nobody asked to see, and a transcript cannot be un-written. Write the
-commands out for a human to run, and diagnose from what they paste back.
+commands out for the user to run, and diagnose from what they paste back. When a
+fact about the box decides something, ask for it.
+
+**The box is shared, and the other projects are older than this one.**
+`metar-bot` trades live money on port 8080. `sports-bot` answers on 8082. A
+Postgres on the host, `polymarket_account_tracker` and `polymarket-sidecar`
+belong to them too. None of it concerns Treeline. Never stop, restart, move,
+upgrade, reconfigure or read any of it, and never propose a command that would.
+Treeline is self-contained: its own Compose project, its own volumes, its own
+ports, its own database inside a container, never the host Postgres. An OOM in a
+sister project degraded the trading bot in June 2026, so every Treeline service
+declares a memory limit.
+
+Development still runs locally under Docker Compose. A deploy happens when the
+user runs it.
 
 ## Stack
 
@@ -73,9 +89,19 @@ commands out for a human to run, and diagnose from what they paste back.
 - Caddy for TLS, everything in one `docker-compose.yml` on a single VPS
 - Prisma as the ORM
 
-The directory layout is not settled. It is decided by the first infrastructure
-work and written here once it exists. The spec fixes one path: spatial
-repositories live in `src/spatial/*.repository.ts` and nowhere else.
+The layout is a pnpm workspace:
+
+```
+apps/web/          Next.js, standalone build
+apps/api/          NestJS; the worker is the same image with a different command
+packages/          empty until something is genuinely shared
+infra/             Caddyfile, tile build scripts
+prisma/            schema and migrations
+docker-compose.yml, pnpm-workspace.yaml, .env.example
+```
+
+Spatial repositories live in `apps/api/src/spatial/*.repository.ts` and nowhere
+else. That path is fixed by the spec.
 
 ## Commands
 

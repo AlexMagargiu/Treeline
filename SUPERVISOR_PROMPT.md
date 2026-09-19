@@ -44,20 +44,63 @@ spec section you have not read.
   does not block them. Build none of it.
 - **Do not add anything the spec does not describe.** Ask first. Every time.
 - **Do not edit an applied migration.** Write a new one.
-- **Do not deploy.** There is no host yet. See "Deployment" below.
+- **Do not deploy.** The user deploys. See "Deployment and servers" below.
 
 ### Deployment and servers
 
-**No VPS exists yet.** Everything runs locally under Docker Compose. The GitHub Actions
-deploy, the hostname, the TLS certificate and the nightly `pg_dump` are phase-1 items that
-are not yet started.
+**The VPS exists, and it is shared.** A Hetzner box, 4 vCPU, 8 GB RAM, 80 GB SSD, reached
+as `root` at `89.167.90.189` with the key `~/.ssh/github`. The deploy pattern to copy is
+`~/repos/weather_arb/scripts/deploy.sh`, which rsyncs and builds over SSH.
 
-When the host is bought, the rule that goes here is: **Claude never touches it.** No SSH,
-no `scp`, no `rsync`, no `curl` against the deployed hostname, not even read-only. Server
-output can contain credentials nobody asked to see, and once it is in a transcript it
-cannot be taken back. Write the commands out for the user to run, and diagnose from what
-they paste back. Until the host exists there is nothing to touch, and nothing in this file
-should pretend otherwise.
+**Claude never touches it.** No SSH, no `scp`, no `rsync`, no `curl` against the address or
+the deployed hostname, not even read-only. Server output can contain credentials nobody
+asked to see, and once it is in a transcript it cannot be taken back. Write the commands
+out for the user to run, and diagnose from what they paste back. When a fact about the box
+decides something, ask the user for it and wait.
+
+**The other projects on the box are older than this one and none of them concern
+Treeline.** `metar-bot` trades live money on port 8080, with its own Postgres on the host
+and a systemd unit. `sports-bot` answers on 8082. `polymarket_account_tracker` and
+`polymarket-sidecar` live there too. Never stop, restart, move, upgrade, reconfigure or
+read any of them, and never write a command into a prompt that would. Treeline is
+self-contained: its own Compose project name, its own volumes, its own ports, its own
+Postgres inside a container, never the host one. A sister project OOM'd the box in June
+2026 and degraded the trading bot, so every Treeline service declares a memory limit and
+the whole stack has a stated ceiling.
+
+**Settled on 2026-09-19.**
+
+- **TLS and ports.** Ports 80 and 443 open to the world in the Hetzner Cloud console, and
+  Caddy uses the ordinary HTTP-01 challenge. No DNS provider plugin, no API token. The
+  site is password-gated and the login route is rate-limited, so a public 443 is the
+  intended exposure. The user opens the ports.
+- **Deploy.** GitHub Actions builds both images, pushes to `ghcr.io`, then pulls and
+  restarts over SSH. `github.com/AlexMagargiu/Treeline` is already `origin`. Images never
+  build on the box: a Next.js build peaks over a gigabyte beside a live trading bot, and
+  that is the failure mode the June 2026 OOM already produced once. Migrations run as a
+  one-shot container before the API starts.
+- **Hostname.** `89-167-90-189.sslip.io` for now, which resolves to the address with no
+  registration. It is temporary: the whole of `sslip.io` shares one Let's Encrypt rate
+  limit, so a renewal can fail for reasons that have nothing to do with this project. The
+  Caddyfile reads `{$TREELINE_HOST}` from `.env`, so swapping in a real name later is one
+  line in a file that is not committed.
+- **Backups.** A nightly `pg_dump` inside the stack to a `backups` volume, 14 days kept,
+  older files pruned. The second location is the user's own machine, which pulls the
+  directory with a documented `rsync`. No credential for a third party sits on a shared
+  box.
+- **Resource ceiling.** 3 GB of memory and 25 GB of disk, of roughly 5 GB and 50 GB free.
+  A hard `mem_limit` on every service: Postgres 1G, web 512M, api 512M, worker 512M, MinIO
+  384M, Redis 192M, Caddy 64M. Tiles take their own volume with a 15 GB budget inside the
+  25 GB, enough for the Romania basemap plus Bucegi, and small enough to notice before the
+  disk fills.
+
+Still unknown, and to be asked rather than assumed: whether Docker and the Compose plugin
+are installed, which ports are already bound, today's real free memory and disk, the
+hostname and its A record, where the nightly `pg_dump` goes, and whether the phase-1
+hardening line (`ufw`, `fail2ban`, unattended upgrades) applies at all. That last one is a
+change to a box running other people's live services, where `ufw` is inactive on purpose
+and the Hetzner Cloud firewall is the control, so it stays out of the infrastructure
+prompt until the user says otherwise.
 
 ### Verification
 
@@ -164,7 +207,8 @@ is owned in the repository and retuned to our tokens before it reaches a screen.
 
 ### Repository state
 
-The repository holds documents and no code. There are no commits yet.
+The repository holds documents and no code. Three commits, all documents: `ae530e4` the
+spec and the seed, `7f39e9f` the design contract, `207b4d4` the rules and this file.
 
 ```
 Treeline/
@@ -178,9 +222,13 @@ Treeline/
 └── SUPERVISOR_PROMPT.md                  # this file
 ```
 
-The directory layout for the code is not decided. It is settled by the first
-infrastructure prompt, and written into `CLAUDE.md` once it exists. The spec fixes one
-path only: spatial repositories live in `src/spatial/*.repository.ts` and nowhere else.
+The directory layout is decided, and the first infrastructure prompt creates it: a pnpm
+workspace with `apps/web` (Next.js), `apps/api` (NestJS, and the worker is the same image
+with a different command), `packages/` empty until something is genuinely shared,
+`infra/` for the Caddyfile and the tile scripts, `prisma/` at the root, and
+`docker-compose.yml` beside `pnpm-workspace.yaml`. Spatial repositories live in
+`apps/api/src/spatial/*.repository.ts` and nowhere else, which is the one path the spec
+fixes.
 
 ---
 
@@ -299,7 +347,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 
 | # | Section | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | Infrastructure | not started | Compose, Caddy, Actions, volumes, backups. No host yet, so the deploy half waits |
+| 1 | Infrastructure | prompt written | `CODING_PROMPT_INFRA.md`. Compose, Caddy, Actions, volumes, backups, and the deploy. Hardening left out on purpose, see "Deployment and servers". The host is the shared Hetzner box; the user runs every command against it |
 | 2 | Database and seed | not started | Blocked on the four seed decisions above |
 | 3 | API | not started | Auth, massifs, routes, route detail, patch with edit log, saved filters, the derived view |
 | 4 | Tiles | not started | Romania PMTiles, Bucegi contours, Bucegi terrain-RGB, one rebuild script |
@@ -453,7 +501,7 @@ browser.
 
 ## Dev environment
 
-Everything runs locally. There is no host.
+Development runs locally. The host is the shared Hetzner box, and only the user touches it.
 
 ```bash
 docker compose up -d            # start the stack
@@ -480,8 +528,10 @@ review found, what was decided, what to remember.
 
 ## Current state — what is next
 
-**2026-09-19.** The repository holds `docs/spec.md`, `docs/phase-1.md`, `CLAUDE.md`, the
-seed spreadsheet and this file. There are no commits. Nothing is built.
+**2026-09-19.** The repository holds `docs/spec.md`, `docs/phase-1.md`, `docs/design.md`,
+`CLAUDE.md`, the seed spreadsheet and this file, in three document commits. No code is
+built. The layout is decided (pnpm workspace, `apps/web` and `apps/api`) and the host
+exists: the shared Hetzner box, which only the user touches.
 
 **Blocked on the user:** the four seed decisions above — the massif list, the diacritics
 pass, the season-window mapping, and where `Confidence` lives. Sections 1, 4 and part of 5
