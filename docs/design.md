@@ -132,9 +132,22 @@ Pick these once. Changing one later is a design decision, not an implementation 
   screen. One system, so nothing from Fluent, Carbon, Material or Radix Themes enters the
   tree beside it. The Radix primitives that shadcn itself depends on are not a second
   system.
-- **One accent colour**, used identically on every screen. It is not purple, not violet,
-  not a gradient, and its saturation stays under 80 percent. Route lines carry the season
-  difficulty scale, which is a data ramp and not the accent.
+- **One accent colour, settled on 2026-09-19: a topographic blue.** Used identically on
+  every screen. It is not purple, not violet, not a gradient, and its saturation stays
+  under 80 percent. Route lines carry the season difficulty scale, which is a data ramp
+  and not the accent.
+
+  | Theme | `--primary` | Saturation | Contrast |
+  | --- | --- | --- | --- |
+  | Light | `#2A5F87` | 69 percent | white on it 6.81, it on the off-white surface 6.57 |
+  | Dark | `#7FC3E6` | 45 percent | on the dark surface 9.41, near-black text on it 9.41 |
+  | High contrast | `#1B4A6B` | 75 percent | 9.38 on pure white, both directions |
+
+  The light blue the brief asked for is the dark theme. As a light-theme primary it
+  measures 1.92 against an off-white surface, which fails AA by a distance, so it is the
+  same accent seen on a dark ground rather than a second colour. The blue also stays clear
+  of the difficulty ramp, which runs green to amber to red, so an accent control never
+  reads as a difficulty.
 - **One neutral family.** Do not mix warm and cool greys.
 - **One corner radius scale**, expressed as shadcn's `--radius` and derived from it
   everywhere. No component carries its own radius.
@@ -146,10 +159,19 @@ Pick these once. Changing one later is a design decision, not an implementation 
   which the skill's one-family rule forbids, or rewriting the imports of every component
   the generator adds, forever. Lucide it is, deliberately, through the skill's own
   override.
-- **One sans, one mono**, self hosted through `next/font`. Never a Google Fonts `<link>`.
-  **Verify the face carries s-comma and t-comma, the Romanian forms, not the Turkish
-  cedilla.** A font that renders Prapastiile Zarnestiului with the wrong accent fails the
-  spec's naming rule. Check before you commit to a face.
+- **One sans, one mono, settled on 2026-09-19: IBM Plex Sans and IBM Plex Mono**, loaded
+  with `next/font/google`, which self hosts them at build time. Never a Google Fonts
+  `<link>`. Plex is drawn for technical material, which is the design read of this
+  product, and the mono is a true sibling of the sans rather than a borrowed face, which
+  matters because divergence 4 puts mono numerals inside sans prose on every trail page.
+  Plex Mono carries tabular figures, so a column of distances lines up.
+
+  The Romanian check was run, not assumed. Both faces encode U+0218 to U+021B, and in both
+  of them `ș` is the glyph `scommaaccent`, built as `s + uni0326`, distinct from
+  `scedilla`. A face that renders Prapastiile Zarnestiului with a Turkish cedilla fails
+  the spec's naming rule, and this pair does not. Five other candidates passed the same
+  test (Source Sans 3, JetBrains Mono, Geist, Geist Mono, Atkinson Hyperlegible), so the
+  choice between them was made on the design read, not on coverage.
 - **Theme tokens as CSS variables**, using shadcn's own names as the token layer. Light
   under `:root`, dark and high contrast under `[data-theme="dark"]` and
   `[data-theme="contrast"]`, with Tailwind's `dark` variant pointed at the same attribute
@@ -157,16 +179,28 @@ Pick these once. Changing one later is a design decision, not an implementation 
   because the spec requires a high contrast mode for direct sun, and shadcn ships two.
 - **No pure black and no pure white.**
 
-## 7. Decisions still open
+## 7. Decisions settled on 2026-09-19
 
-These are additions the spec does not describe, so they need the user, per `CLAUDE.md`.
+All three are closed. A frontend coding prompt no longer has anything to stop on.
 
-1. **The type pair**, subject to the diacritics check in section 6.
-2. **The accent colour.** It becomes shadcn's `--primary` and every token derived from it.
-3. **Whether `/login` carries an image**, and if so which one.
+1. **The type pair: IBM Plex Sans and IBM Plex Mono.** Section 6 carries the reasoning and
+   the diacritics evidence.
+2. **The accent: the topographic blue in section 6**, one value per theme, each measured
+   against its own surface.
+3. **`/login` carries no image.** It is a plain gate: one password field, one button, one
+   error state. The password is set in `.env` and compared against an argon2id hash, and
+   the route is rate limited to five attempts per IP per fifteen minutes.
 
-Until they are answered, a frontend coding prompt may still be written. It states the
-decision as open and the coding agent stops rather than picking.
+   Divergence 1 allowed one real photograph here and the user declined it. That is the
+   right call twice over. There is no photograph yet that is the user's own, and the skill
+   bans a fabricated one; and a login screen with a stock mountain on it is the exact
+   marketing gesture this product has no reason to make. The page has to do one thing at
+   05:40 with cold hands: take a password. The gate therefore gets a 48 px field, a
+   visible focus ring in the accent, an error that names what went wrong without saying
+   whether the password exists, and nothing else.
+
+Anything else the spec does not describe still stops a coding agent. These three no longer
+do.
 
 ## 8. Paste this block into every frontend coding prompt
 

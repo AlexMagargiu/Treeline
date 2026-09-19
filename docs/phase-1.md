@@ -41,8 +41,14 @@ spec for them so today's schema does not block them.
 - [ ] GitHub Actions: build both images, push to ghcr.io, `docker compose pull`
       and `up -d` over SSH. Migrations run as a one-shot container before the
       API starts.
-- [ ] VPS hardening: SSH keys only, firewall open on 22, 80, 443, fail2ban,
-      unattended security upgrades.
+- [x] VPS hardening, satisfied on 2026-09-19 and read off the box rather than
+      assumed. Root is key-only (`permitrootlogin without-password`), so no
+      password reaches it. Ports 22, 80 and 443 are controlled by the Hetzner
+      Cloud firewall, from outside the machine, which is why `ufw` stays
+      inactive. `unattended-upgrades` is installed and enabled.
+      `fail2ban` is deliberately not installed: the box is shared with live
+      services, and a box-wide IP ban is a risk to them, not a protection for
+      Treeline. Revisit if the host ever stops being shared.
 - [ ] Nightly `pg_dump` to a second location. Do this now, not later.
 
 **Check:** destroy the stack, `docker compose up -d`, and the site returns.
