@@ -61,24 +61,38 @@ The VPS exists. It is a Hetzner box, 4 vCPU, 8 GB RAM, 80 GB SSD, reached as
 `root` at `89.167.90.189` with the key `~/.ssh/github`. The deploy pattern to
 copy is `~/repos/weather_arb/scripts/deploy.sh`.
 
-**Claude never touches it.** No SSH, no `scp`, no `rsync`, no `curl` against the
-address or the deployed hostname, not even read-only. Server output can carry
-credentials nobody asked to see, and a transcript cannot be un-written. Write the
-commands out for the user to run, and diagnose from what they paste back. When a
-fact about the box decides something, ask for it.
+**Claude works on it directly. Authorised by the user on 2026-09-19, and this
+replaces the earlier rule that Claude never touched the host.** SSH in as `root`
+with `~/.ssh/github`, run commands, read logs, deploy. Root needs no `sudo`
+there. Where `sudo` is needed on the local machine it is authorised too, and the
+password is in `.secrets/vps.env`, which is untracked and never committed. Do
+not ask permission each time, and do not hand the user a command you can run
+yourself.
 
-**The box is shared, and the other projects are older than this one.**
-`metar-bot` trades live money on port 8080. `sports-bot` answers on 8082. A
-Postgres on the host, `polymarket_account_tracker` and `polymarket-sidecar`
-belong to them too. None of it concerns Treeline. Never stop, restart, move,
-upgrade, reconfigure or read any of it, and never propose a command that would.
-Treeline is self-contained: its own Compose project, its own volumes, its own
-ports, its own database inside a container, never the host Postgres. An OOM in a
+The reason the old rule existed has not gone away, so three limits stand.
+
+- **Treeline only.** `/root/treeline` and the `treeline` Compose project. The box
+  is shared and the other projects are older than this one: `metar-bot` trades
+  live money on port 8080, `sports-bot` answers on 8082, and the host Postgres,
+  `polymarket_account_tracker` and `polymarket-sidecar` belong to them as well.
+  Never stop, restart, move, upgrade, reconfigure, delete or edit any of it. Read
+  it only when it demonstrably affects Treeline, and say why.
+- **Nothing destructive without asking.** No `docker system prune`, no `-v` on a
+  volume holding data, no package removal, no change to systemd, `ufw`,
+  `fail2ban` or the Hetzner firewall, no reboot.
+- **Keep credentials out of the transcript.** Never print the password, a private
+  key, a token or another project's `.env`. Redact before pasting output. A
+  transcript cannot be un-written.
+
+Treeline stays self-contained: its own Compose project, its own volumes, its own
+ports, its own database in a container, never the host Postgres. An OOM in a
 sister project degraded the trading bot in June 2026, so every Treeline service
 declares a memory limit.
 
-Development still runs locally under Docker Compose. A deploy happens when the
-user runs it.
+`docker-compose.yml` publishes no host port for `db`, `redis` or `storage`, on
+the box or anywhere else. A developer whose machine already has something on
+5432 may add a personal `docker-compose.override.yml` binding a loopback port.
+That file is untracked, and the deploy never copies it.
 
 ## Stack
 

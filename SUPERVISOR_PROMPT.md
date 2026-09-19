@@ -20,7 +20,10 @@ spec section you have not read.
 1. **Track progress.** Know which phase-1 sections are done, which are in flight, and
    what the last coding agent shipped.
 2. **Write coding prompts.** For each unit of work, write `CODING_PROMPT_{NAME}.md` that a
-   coding agent with no prior context can execute alone.
+   coding agent with no prior context can execute alone. A coding prompt is a working
+   file, never committed, and deleted once the work is reviewed. `.gitignore` covers
+   `CODING_PROMPT_*.md`. What is worth keeping from a prompt goes into the commit message,
+   this file or `docs/`, which is where a decision survives.
 3. **Review completed work.** Check the changes against the prompt, against `CLAUDE.md`
    and against the spec section that governs them. Run the gates.
 4. **Define contracts.** Every prompt that adds or consumes an endpoint states the exact
@@ -44,7 +47,8 @@ spec section you have not read.
   does not block them. Build none of it.
 - **Do not add anything the spec does not describe.** Ask first. Every time.
 - **Do not edit an applied migration.** Write a new one.
-- **Do not deploy.** The user deploys. See "Deployment and servers" below.
+- **Deploy when that is the right step.** Claude has server access since 2026-09-19. See
+  "Deployment and servers" below for the three limits that still bind.
 
 ### Deployment and servers
 
@@ -52,17 +56,35 @@ spec section you have not read.
 as `root` at `89.167.90.189` with the key `~/.ssh/github`. The deploy pattern to copy is
 `~/repos/weather_arb/scripts/deploy.sh`, which rsyncs and builds over SSH.
 
-**Claude never touches it.** No SSH, no `scp`, no `rsync`, no `curl` against the address or
-the deployed hostname, not even read-only. Server output can contain credentials nobody
-asked to see, and once it is in a transcript it cannot be taken back. Write the commands
-out for the user to run, and diagnose from what they paste back. When a fact about the box
-decides something, ask the user for it and wait.
+**Claude works on it directly, authorised by the user on 2026-09-19.** SSH as `root` with
+`~/.ssh/github`, run commands, read logs, deploy. Root needs no `sudo` there; `sudo` on the
+local machine is authorised too, and the password lives in `.secrets/vps.env`, untracked.
+Do not ask permission each time, and do not hand the user a command you can run.
+
+**Every coding prompt now carries this block, verbatim, the way frontend prompts carry the
+design block:**
+
+---
+
+**Server access (authorised, do not ask)**
+
+The VPS is `89.167.90.189`, a shared Hetzner box. SSH as `root` with `~/.ssh/github`. Root
+needs no `sudo` there; on the local machine `sudo` is authorised and the password is in
+`.secrets/vps.env`, which is untracked. Three limits stand. Touch only `/root/treeline` and
+the `treeline` Compose project, never `metar-bot` (port 8080), `sports-bot` (8082), the
+host Postgres, `polymarket_account_tracker` or `polymarket-sidecar`. Run nothing
+destructive without asking: no `docker system prune`, no `-v` on a volume with data, no
+package removal, no systemd, `ufw`, `fail2ban` or firewall change, no reboot. Never print a
+password, a key, a token or another project's `.env` into your report.
+
+---
 
 **The other projects on the box are older than this one and none of them concern
 Treeline.** `metar-bot` trades live money on port 8080, with its own Postgres on the host
 and a systemd unit. `sports-bot` answers on 8082. `polymarket_account_tracker` and
 `polymarket-sidecar` live there too. Never stop, restart, move, upgrade, reconfigure or
-read any of them, and never write a command into a prompt that would. Treeline is
+delete any of them, and never write a command into a prompt that would. Read them only when
+they demonstrably affect Treeline, such as a port collision, and say why. Treeline is
 self-contained: its own Compose project name, its own volumes, its own ports, its own
 Postgres inside a container, never the host one. A sister project OOM'd the box in June
 2026 and degraded the trading bot, so every Treeline service declares a memory limit and
@@ -89,16 +111,15 @@ the whole stack has a stated ceiling.
   directory with a documented `rsync`. No credential for a third party sits on a shared
   box.
 - **Resource ceiling.** 3 GB of memory and 25 GB of disk, of roughly 5 GB and 50 GB free.
-  A hard `mem_limit` on every service: Postgres 1G, web 512M, api 512M, worker 512M, MinIO
-  384M, Redis 192M, Caddy 64M. Tiles take their own volume with a 15 GB budget inside the
-  25 GB, enough for the Romania basemap plus Bucegi, and small enough to notice before the
-  disk fills.
+  A hard `mem_limit` on every service, as built in `0aa31ff`: db 1g, web 512m, api 512m,
+  worker 384m, storage 256m, redis 192m, proxy 64m, backup 64m. Docker reads `1g` as 1024
+  MiB, so the ceiling sums to 3008 MiB and measured steady state is 331.6 MiB. Tiles take
+  their own volume with a 15 GB budget inside the 25 GB, enough for the Romania basemap
+  plus Bucegi, and small enough to notice before the disk fills.
 
-Still unknown, and to be asked rather than assumed: whether Docker and the Compose plugin
-are installed, which ports are already bound, today's real free memory and disk, the
-hostname and its A record, where the nightly `pg_dump` goes, and whether the phase-1
-hardening line (`ufw`, `fail2ban`, unattended upgrades) applies at all. That last one is a
-change to a box running other people's live services, where `ufw` is inactive on purpose
+One thing stays the user's to decide rather than Claude's to check: whether the phase-1
+hardening line (`ufw`, `fail2ban`, unattended upgrades) applies at all. It is a change to a
+box running other people's live services, where `ufw` is inactive on purpose
 and the Hetzner Cloud firewall is the control, so it stays out of the infrastructure
 prompt until the user says otherwise.
 
@@ -333,11 +354,35 @@ Measured from the file, not estimated:
    status of normal, harder, dangerous or closed. Phase 1 says to write four rows from the
    catalogue's single difficulty. The window maps onto `status`, and the mapping rule is
    not written anywhere yet.
-4. **`Done` and `Date done` are described in the README but absent from the sheet.** No
-   route is marked walked. That is consistent with phase 1, where every visit count is
+4. **`Done`, `Date done` and `My rating 1-5` are columns in the sheet, and every one of
+   them is empty.** Measured on 2026-09-19: the Routes sheet carries 33 columns, not 27,
+   and those three hold nothing in all 185 rows. No route is marked walked. That is consistent with phase 1, where every visit count is
    zero, and it is the reason the empty state matters.
 
 ---
+
+### Three schema decisions settled on 2026-09-19
+
+The Routes sheet has 27 columns. All but three land on the eleven phase-1 tables without
+argument. These three did not, and the answers are written into `CODING_PROMPT_SCHEMA.md`.
+
+1. **`route_access` wins, and `route` has no `start_station_id` or `finish_station_id`.**
+   The spec's SQL block lists both the columns and the link table, which is two sources of
+   truth for one fact. Every access point of a route is a `route_access` row carrying
+   `role`, `mode` and `approach_min`, so a route reachable by train and by car is two more
+   rows rather than a schema change.
+2. **`Confidence` becomes `route.confidence`**, an enum of high, medium and verify. It is a
+   fact about the catalogue row, not about a season or a category, and a route worth
+   verifying on a map before walking must not look identical to one that is well
+   documented.
+3. **`route.season_window` keeps the sheet's raw window**, such as `JUN-OCT`, beside the
+   four derived `route_season` rows. The window-to-status mapping is a guess made once, and
+   keeping the input means the four rows can be re-derived when the rule improves, without
+   returning to the spreadsheet and without losing hand edits.
+
+One addition the spec does not carry and the derivation contract requires: `station.train_h`,
+the train hours from București Nord that the Stations sheet holds for all 31 stations.
+Without it the derived view cannot compute `train_h = max(start, finish)`.
 
 ## Phase 1 — the board
 
@@ -348,7 +393,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 | # | Section | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Infrastructure | prompt written | `CODING_PROMPT_INFRA.md`. Compose, Caddy, Actions, volumes, backups, and the deploy. Hardening left out on purpose, see "Deployment and servers". The host is the shared Hetzner box; the user runs every command against it |
-| 2 | Database and seed | not started | Blocked on the four seed decisions above |
+| 2 | Database and seed | schema shipped and reviewed | Eleven tables, eleven enums, four GiST indexes and the PostGIS migration, from `CODING_PROMPT_SCHEMA.md`. Still to come: the derived view, then the seed, which stays blocked on the massif list and the diacritics pass |
 | 3 | API | not started | Auth, massifs, routes, route detail, patch with edit log, saved filters, the derived view |
 | 4 | Tiles | not started | Romania PMTiles, Bucegi contours, Bucegi terrain-RGB, one rebuild script |
 | 5 | Frontend | not started | Middleware, PWA, country map, bottom sheet, filters, trail page. Every prompt here is a frontend prompt: `docs/design.md` governs it |

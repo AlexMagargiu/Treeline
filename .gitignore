@@ -8,4 +8,15 @@ next-env.d.ts
 .env.*
 !.env.example
 
+# Credentials for agents working on this project. See CLAUDE.md, Servers.
+.secrets/
+
+# A personal port mapping for a machine that already has something on 5432.
+# Never committed, never copied to the box.
+docker-compose.override.yml
+
+# Coding prompts are working files. They are written for one agent, then deleted
+# once the work is reviewed. See SUPERVISOR_PROMPT.md.
+CODING_PROMPT_*.md
+
 backups/
