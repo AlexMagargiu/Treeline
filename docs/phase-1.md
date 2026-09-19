@@ -91,20 +91,37 @@ massif and at least one access point. Both pass, with zero orphans.
 
 ## 3. API
 
-- [ ] Auth: `POST /auth/login` compares against an argon2id hash in the
-      environment, issues a bearer token, sets a signed httpOnly cookie for 30
-      days. Rate limit to 5 attempts per IP per 15 minutes.
-- [ ] `GET /massifs` with per-massif counts: routes known, routes walked (zero
-      for now), last visited (null for now).
-- [ ] `GET /routes` taking every filter in the spec, plus sort and pagination.
-      One raw SQL query, not a query builder assembling twenty optional clauses.
-- [ ] `GET /routes/:id` returning the route, its categories, all four season
+- [x] Auth: `POST /auth/login` compares against an argon2id hash in the
+      environment, issues a bearer token, sets an httpOnly cookie for 30 days,
+      unsigned by the decision recorded in `docs/spec.md`. Rate limit to 5
+      attempts per IP per 15 minutes, counted in Redis.
+- [x] `GET /massifs` with per-massif counts: routes known, routes walked (zero
+      for now), last visited (null for now). Geometry as parsed GeoJSON.
+- [x] `GET /routes` taking every filter phase 1 can answer, plus sort and
+      pagination. One parameterised statement. Nine drawer filters from the spec
+      are deliberately absent, because each needs a table that does not exist
+      yet: water, shelter, camping, protected area, rock, forest, my rating, last
+      visited, warnings.
+- [x] `GET /routes/:id` returning the route, its categories, all four season
       rows, and its access points with approach times.
-- [ ] `PATCH /routes/:id` writing to `edit_log` on every field change.
-- [ ] `GET /saved-filters`, `POST /saved-filters`, `DELETE /saved-filters/:id`.
-- [ ] Derived values (moving time, day length, effort, difficulty, stage, trip
-      type, energy) computed in one SQL view, never in TypeScript. Correcting a
-      distance must update everything that depends on it.
+- [x] `PATCH /routes/:id` writing to `edit_log` on every field change, in one
+      transaction, and returning the route so the moved derived values are
+      visible in the same response.
+- [x] `GET /saved-filters`, `POST /saved-filters`, `DELETE /saved-filters/:id`.
+- [x] Derived values computed in one SQL view, never in TypeScript. Shipped in
+      `300946d` and proved against all 185 spreadsheet rows.
+
+**Two known gaps, both out of scope here and both easy to forget.**
+
+`route_season.overall` is a stored number the seed wrote, while
+`route_derived.overall_difficulty` is computed live. Correcting a route's
+distance moves the derived value and leaves the season row behind, so a trail
+page can show two different difficulties, and `maxDifficulty` filters on the
+stale one. Whichever prompt makes season rows editable has to close this.
+
+`route_category` is empty, so the category filter matches nothing. The parameter
+works; there is no data. Categories arrive with the OpenStreetMap import in
+phase 2, or with a hand pass before it.
 
 **Check:** the filter endpoint returns the same counts the map shows.
 

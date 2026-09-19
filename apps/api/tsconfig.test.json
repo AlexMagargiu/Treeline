@@ -1,0 +1,8 @@
+{
+  // The tests are typechecked but never emitted. They cannot live in tsconfig.json's
+  // include: with both src and test in it, the compiler's root directory becomes
+  // apps/api and nest emits dist/src/main.js, while the Dockerfile runs dist/main.js.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["src/**/*", "test/**/*"]
+}

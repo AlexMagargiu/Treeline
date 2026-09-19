@@ -11,8 +11,12 @@ RUN pnpm install --frozen-lockfile --filter @treeline/api...
 FROM deps AS build
 COPY apps/api apps/api
 COPY prisma prisma
+# The API imports enums and Prisma namespace types from the generated client, so it
+# has to exist before tsc runs. The prod install prunes node_modules, so generate again.
+RUN pnpm --filter @treeline/api exec prisma generate --schema /app/prisma/schema.prisma
 RUN pnpm --filter @treeline/api build
 RUN pnpm install --frozen-lockfile --prod --filter @treeline/api...
+RUN pnpm --filter @treeline/api exec prisma generate --schema /app/prisma/schema.prisma
 
 FROM node:22-alpine AS runtime
 RUN corepack enable

@@ -412,7 +412,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 | --- | --- | --- | --- |
 | 1 | Infrastructure | prompt written | `CODING_PROMPT_INFRA.md`. Compose, Caddy, Actions, volumes, backups, and the deploy. Hardening left out on purpose, see "Deployment and servers". The host is the shared Hetzner box; the user runs every command against it |
 | 2 | Database and seed | **done** | Eleven tables, the derived view, the provenance columns and the seed. 185 routes, 15 massifs, 31 stations, 740 season rows, idempotent. `d630375`, `300946d`, `0042df6`, `0c21040` |
-| 3 | API | prompt written | `CODING_PROMPT_API.md`. Nine endpoints, the one parameterised filter query, the first spatial repository, sessions and rate limiting in Redis. The derived view already shipped in `300946d` |
+| 3 | API | **done** | Nine endpoints, one parameterised filter query, the first spatial repository, sessions and rate limiting in Redis, diacritic-insensitive search. Two known gaps recorded in `docs/phase-1.md`: stale `route_season.overall` after an edit, and an empty `route_category` |
 | 4 | Tiles | not started | Romania PMTiles, Bucegi contours, Bucegi terrain-RGB, one rebuild script |
 | 5 | Frontend | not started | Middleware, PWA, country map, bottom sheet, filters, trail page. Every prompt here is a frontend prompt: `docs/design.md` governs it |
 | 6 | Quality floor | not started | Four widths, dark and high-contrast, focus, 48 px targets, one e2e test |
@@ -502,7 +502,13 @@ These are written down because each one is cheap to avoid now and expensive to f
    shape that survives the change.
 6. **Derived columns are derived.** Store km, ascent, terrain, technical. Compute the rest
    in the view. If correcting a distance does not move the difficulty, the view is wrong.
-7. **The sheet is the reference for the view, and the view can match it exactly.** Measured
+7. **A season row does not follow a correction.** `route_season.overall` is stored and
+   `route_derived.overall_difficulty` is computed, so editing a route's distance moves one
+   and not the other, and the filter's `maxDifficulty` reads the stale one. Nothing in
+   phase 1 closes this. The prompt that makes season rows editable must, and until then a
+   trail page can contradict itself after an edit.
+
+8. **The sheet is the reference for the view, and the view can match it exactly.** Measured
    on 2026-09-19 against all 185 rows: the derivation contract reproduces every derived
    column with zero mismatches, the four kcal columns included, 740 energy values in all.
    This holds only in exact decimal arithmetic. In IEEE doubles, fourteen kcal values move

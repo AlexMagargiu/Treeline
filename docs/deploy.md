@@ -79,6 +79,12 @@ POSTGRES_USER=treeline
 POSTGRES_PASSWORD=<a long random string>
 POSTGRES_DB=treeline
 REDIS_URL=redis://redis:6379
+SEED_OWNER_ID=00000000-0000-0000-0000-000000000001
+TREELINE_PASSWORD_HASH=<the hash from step 6a>
+SESSION_COOKIE_NAME=treeline_session
+SESSION_TTL_DAYS=30
+LOGIN_MAX_ATTEMPTS=5
+LOGIN_WINDOW_MINUTES=15
 MINIO_ROOT_USER=treeline
 MINIO_ROOT_PASSWORD=<a different long random string>
 S3_ENDPOINT=http://storage:9000
@@ -96,6 +102,30 @@ There is no `DATABASE_URL` here. `api`, `worker` and `migrate` build their own c
 string from `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB`, so the password is
 written once. The `DATABASE_URL` in `.env.example` is the host's view of a local database
 and nothing on the box reads it. Keep the password free of characters a URL reserves.
+
+There is no `REDIS_URL_HOST` here either, for the same reason: it is the host's view of
+Redis, used by the end-to-end suite on a development machine, and nothing on the box
+reads it.
+
+### 6a. Generate the password hash
+
+One shared password protects the whole site. The site stores an argon2id hash of it and
+never the password itself. Generate the hash on your own machine, in the repository:
+
+```sh
+node -e 'require("@node-rs/argon2").hash(process.argv[1]).then(console.log)' 'your password'
+```
+
+Prints one line beginning `$argon2id$v=19$m=19456,t=2,p=1$`. Paste that line into
+`TREELINE_PASSWORD_HASH` in `/root/treeline/.env`, and keep the password itself in a
+password manager. The hash is safe to put in a file with mode 600; the password is not
+safe anywhere.
+
+Two things to watch. The hash contains `$` characters, so it goes into the file inside
+the quoted heredoc above, where the shell does not expand them, and it is never echoed
+into a terminal you keep. And changing the hash logs nobody out: sessions live in Redis
+and last thirty days. To end every session at once, `docker compose exec redis redis-cli
+--scan --pattern 'session:*' | xargs -r docker compose exec -T redis redis-cli del`.
 
 ### 7. Push to main, and let the workflow run
 

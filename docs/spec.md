@@ -14,7 +14,7 @@ The seed content is the existing database of 185 routes reachable by train from 
 
 One shared password protects the whole site, held as an argon2id hash in an environment variable. No user table at the start.
 
-- Next.js middleware checks a signed httpOnly cookie on every route except `/login` and the health check.
+- Next.js middleware checks an httpOnly cookie on every route except `/login` and the health check. The cookie is **not signed**, decided on 2026-09-19: it carries one opaque 256-bit random id and nothing else, and the API checks it against Redis on every request. A signature authenticates claims, and there are none here; forging the cookie means guessing 256 bits either way, and no code path skips the Redis lookup, so a signature would add a secret to manage and nothing else.
 - The cookie lasts 30 days, is `SameSite=Lax` and `Secure`, and carries no user data beyond a session id.
 - Rate limit the login route to 5 attempts per IP per 15 minutes.
 - Do not use HTTP Basic auth. It cannot log out, and the password appears in proxy logs.

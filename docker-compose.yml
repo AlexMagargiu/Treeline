@@ -51,6 +51,14 @@ services:
       S3_BUCKET: ${S3_BUCKET}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      # The password gate. Only api reads these: worker builds the same AppModule but has
+      # no HTTP surface, so it has no business holding the site password.
+      TREELINE_PASSWORD_HASH: ${TREELINE_PASSWORD_HASH}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-treeline_session}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+      LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}
+      LOGIN_WINDOW_MINUTES: ${LOGIN_WINDOW_MINUTES:-15}
+      SEED_OWNER_ID: ${SEED_OWNER_ID}
     depends_on:
       db:
         condition: service_healthy
