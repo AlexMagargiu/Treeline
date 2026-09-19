@@ -46,6 +46,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
 
@@ -59,16 +62,25 @@ jobs:
           source: "docker-compose.yml,infra/Caddyfile,infra/backup.sh"
           target: /root/treeline/
 
+      # The box logs in with this run's own GITHUB_TOKEN and logs out again, so no
+      # personal access token lives on a shared machine. The token dies with the job.
+      #
       # Migrations finish before the API starts, which is why migrate is a one-shot
       # service and not an entrypoint.
       - uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GHCR_USER,GHCR_TOKEN
           script: |
             set -e
             cd /root/treeline
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
             docker compose -p treeline pull
             docker compose -p treeline --profile deploy run --rm migrate
             docker compose -p treeline up -d

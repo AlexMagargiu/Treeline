@@ -48,18 +48,15 @@ ssh -i ~/.ssh/github root@89.167.90.189 'ss -ltnp "sport = :80 or sport = :443"'
 Prints nothing, or prints only Treeline's own `proxy`. If anything else is listening,
 stop and say what it is. Do not kill it.
 
-### 4. Log the box in to the GitHub container registry
+### 4. Nothing to do: the registry login happens inside the deploy
 
-Create a personal access token at https://github.com/settings/tokens with the single
-scope `read:packages`, then:
+There is no personal access token to create and none to store. The deploy job logs the box
+in to `ghcr.io` with the workflow run's own `GITHUB_TOKEN`, pulls, and logs out again, so
+the credential lives for the length of the job and cannot be reused afterwards.
 
-```sh
-ssh -i ~/.ssh/github root@89.167.90.189
-echo 'YOUR_TOKEN_HERE' | docker login ghcr.io -u alexmagargiu --password-stdin
-```
-
-Prints `Login Succeeded`. Without this, `docker compose pull` fails on every deploy with
-`denied`.
+A long-lived `read:packages` token in `/root/.docker/config.json` would be a second
+permanent credential on a machine shared with other projects, and nothing would ever
+rotate it.
 
 ### 5. Create the project directory
 
