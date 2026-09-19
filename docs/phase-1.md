@@ -31,16 +31,19 @@ spec for them so today's schema does not block them.
 
 ## 1. Infrastructure
 
-- [ ] `docker-compose.yml` with web, api, worker, db (postgis/postgis:17),
-      redis, minio, caddy. Postgres and Redis publish no host ports.
-- [ ] `.env.example` checked in, `.env` never.
-- [ ] Caddyfile: one hostname, `/api/*` to the API, everything else to Next.js,
-      automatic TLS.
-- [ ] Named volumes for `db`, `minio` and `caddy_data`. Tiles on their own
-      volume; they will reach tens of gigabytes.
-- [ ] GitHub Actions: build both images, push to ghcr.io, `docker compose pull`
-      and `up -d` over SSH. Migrations run as a one-shot container before the
-      API starts.
+- [x] `docker-compose.yml` with web, api, worker, db (postgis/postgis:17),
+      redis, minio, caddy. Postgres and Redis publish no host ports. MinIO comes
+      from quay.io, because Docker Hub no longer carries the image.
+- [x] `.env.example` checked in, `.env` never.
+- [x] Caddyfile: one hostname from `{$TREELINE_HOST}`, `/api/*` to the API,
+      everything else to Next.js, automatic TLS.
+- [x] Named volumes for `db`, `minio` and `caddy_data`. `tiles` is declared and
+      mounted by nothing until section 4 needs it.
+- [x] GitHub Actions: build both images, push to ghcr.io, pull and `up -d` over
+      SSH, migrations as a one-shot container first. **Written, never run.** It
+      needs `VPS_HOST`, `VPS_USER` and `VPS_SSH_KEY` set on the repository, which
+      is the user's to do. The box logs in to ghcr.io with the run's own token,
+      so there is no personal access token to create.
 - [x] VPS hardening, satisfied on 2026-09-19 and read off the box rather than
       assumed. Root is key-only (`permitrootlogin without-password`), so no
       password reaches it. Ports 22, 80 and 443 are controlled by the Hetzner
@@ -49,9 +52,16 @@ spec for them so today's schema does not block them.
       `fail2ban` is deliberately not installed: the box is shared with live
       services, and a box-wide IP ban is a risk to them, not a protection for
       Treeline. Revisit if the host ever stops being shared.
-- [ ] Nightly `pg_dump` to a second location. Do this now, not later.
+- [ ] Nightly `pg_dump` to a second location. **Half done.** The `backup` service
+      dumps nightly at 03:00 UTC to its own volume and prunes after 14 days. It is
+      not a backup until the documented `rsync` pulls those files to another
+      machine, because today they sit on the disk they protect.
 
-**Check:** destroy the stack, `docker compose up -d`, and the site returns.
+Docker itself was installed on the box on 2026-09-19, 29.8.1 with Compose v5.5.1,
+the same versions the stack was tested against locally.
+
+**Check:** destroy the stack, `docker compose up -d`, and the site returns. Passes
+locally. It has never been run on the box, because nothing is deployed yet.
 
 ## 2. Database and seed
 
