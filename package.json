@@ -7,7 +7,7 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "test:e2e": "echo 'No end-to-end test yet. The first one arrives with the API prompt.'"
+    "test:e2e": "pnpm --filter @treeline/api test:e2e"
   },
   "devDependencies": {
     "@prisma/client": "6.5.0",

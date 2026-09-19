@@ -1,0 +1,32 @@
+Station,Train h from Bucuresti Nord,Changes,Line,Note
+Bucuresti Nord,0,0,-,Start
+Comana,1,0,M900 Giurgiu,Regional trains
+Mogosoaia,0.4,0,M300 north of Bucharest,"Halt, regional only - verify"
+Buftea,0.6,0,M300,Regional trains
+Campina,1.2,0,M300,IR and regional
+Breaza,1.50,0,M300,
+Comarnic,1.5,0,M300,Regional only
+Posada,1.6,0,M300,"Halt, regional only"
+Sinaia,1.6,0,M300,IR and regional
+Busteni,1.8,0,M300,IR and regional
+Azuga,1.9,0,M300,IR and regional
+Predeal,2,0,M300,IR and regional
+Timisu de Jos,2.2,0,M300,Regional only
+Timisu de Sus,2.3,0,M300,Regional only
+Darste,2.4,0,M300,Regional only
+Brasov,2.6,0,M300,IR and regional
+Codlea,3,1,M200 to Fagaras,Change at Brasov
+Vladeni,3.2,1,M200 to Fagaras,Change at Brasov - verify
+Sacele,3.1,1,M301 Intorsura Buzaului,"Change at Brasov, few trains"
+Rasnov,3.1,1,M306 Zarnesti,Change at Brasov
+Zarnesti,3.4,1,M306 Zarnesti,Change at Brasov
+Intorsura Buzaului,3.9,1,M301,"Change at Brasov, few trains"
+Ucea de Jos,4,1,M200,"Change at Brasov, bus onward"
+Porumbacu de Jos,4.4,1,M200,"Change at Brasov, bus onward"
+Avrig,4.6,1,M200,"Change at Brasov, bus onward"
+Valenii de Munte,2.2,1,M304 Transferoviar,Change at Ploiesti Sud
+Maneciu,2.7,1,M304 Transferoviar,Change at Ploiesti Sud
+Slanic Prahova,2.5,1,M303 Transferoviar,Change at Ploiesti Sud
+Fieni,2.6,1,M901 Targoviste,Change at Titu - verify
+Pietrosita,2.9,1,M901 Targoviste,Change at Titu - verify
+Nehoiasu,4.5,1,M502 Buzau - Nehoiasu,VERIFY: service may be suspended

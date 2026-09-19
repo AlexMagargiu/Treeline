@@ -314,6 +314,11 @@ model Profile {
   ownerId             String                                @id @default(dbgenerated("'00000000-0000-0000-0000-000000000001'::uuid")) @map("owner_id") @db.Uuid
   dob                 DateTime?                             @db.Date
   heightCm            Int?                                  @map("height_cm")
+  // route_derived reads both live, so a corrected weight moves every route at once.
+  // weight_kg is nullable: a profile with no weight yet is a real state, and the energy
+  // figure is then null rather than wrong.
+  weightKg            Decimal?                              @map("weight_kg") @db.Decimal(5, 2)
+  packKg              Decimal                               @default(0) @map("pack_kg") @db.Decimal(5, 2)
   homePoint           Unsupported("geography(Point, 4326)")? @map("home_point")
   // 500 m, because exports clip the first and last 500 m of any track that leaves the site.
   homeClipM           Int                                   @default(500) @map("home_clip_m")
