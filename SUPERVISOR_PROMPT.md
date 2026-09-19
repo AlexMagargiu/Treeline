@@ -411,7 +411,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 | # | Section | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Infrastructure | prompt written | `CODING_PROMPT_INFRA.md`. Compose, Caddy, Actions, volumes, backups, and the deploy. Hardening left out on purpose, see "Deployment and servers". The host is the shared Hetzner box; the user runs every command against it |
-| 2 | Database and seed | schema and view shipped and reviewed | Eleven tables in `d630375`. The derived view, `profile.weight_kg` and `pack_kg`, the CSV fixtures and a 185-row equality test followed. Only the seed remains, and it stays blocked on the massif list and the diacritics pass |
+| 2 | Database and seed | **done** | Eleven tables, the derived view, the provenance columns and the seed. 185 routes, 15 massifs, 31 stations, 740 season rows, idempotent. `d630375`, `300946d`, `0042df6`, `0c21040` |
 | 3 | API | prompt written | `CODING_PROMPT_API.md`. Nine endpoints, the one parameterised filter query, the first spatial repository, sessions and rate limiting in Redis. The derived view already shipped in `300946d` |
 | 4 | Tiles | not started | Romania PMTiles, Bucegi contours, Bucegi terrain-RGB, one rebuild script |
 | 5 | Frontend | not started | Middleware, PWA, country map, bottom sheet, filters, trail page. Every prompt here is a frontend prompt: `docs/design.md` governs it |

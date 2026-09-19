@@ -55,21 +55,29 @@ spec for them so today's schema does not block them.
 
 ## 2. Database and seed
 
-- [ ] Enable PostGIS in the first migration, by hand.
-- [ ] Prisma schema for this phase only:
+- [x] Enable PostGIS in the first migration, by hand.
+- [x] Prisma schema for this phase only:
       `massif`, `access_point`, `station`, `parking`, `route`, `route_access`,
       `route_category`, `route_season`, `edit_log`, `profile`, `saved_filter`.
-- [ ] Spatial columns as `Unsupported("geography(...)")`, GiST index on each.
-- [ ] `owner_id` on `profile` and `saved_filter` now, defaulted to a seed user.
-- [ ] Seed script: export the Routes sheet of the spreadsheet to CSV, load
-      stations first, then massifs, then routes, then one `route_season` row per
-      route per season from the catalogue's current single difficulty.
-- [ ] Massif polygons drawn by hand once, with the rule that a route belongs to
-      the massif of its key point.
-- [ ] `route.geom_simple` stays null for now. Nothing in phase 1 requires it.
+- [x] Spatial columns as `Unsupported("geography(...)")`, GiST index on each.
+- [x] `owner_id` on `profile` and `saved_filter` now, defaulted to a seed user.
+- [x] Seed script: 15 massifs, 31 stations, 185 routes, 370 access rows and 740
+      season rows, idempotent. The four season rows per route take their numbers
+      from `route_derived` rather than recomputing them.
+- [x] Massif polygons. Five come from OpenStreetMap protected-area boundaries,
+      ten are drawn by hand, and `massif.source` and `licence` keep the two
+      separable. OpenStreetMap has no mountain range polygons for Romania, which
+      is why only five are real. The ten drawn ones are the rows to correct first.
+- [x] `route.geom_simple` stays null. Nothing in phase 1 requires it.
+
+Also landed here, beyond the original list: the derived view `route_derived`,
+which every figure on a trail page reads, proved against all 185 spreadsheet rows
+for equality rather than a tolerance; `profile.weight_kg` and `pack_kg`, without
+which the energy figure has no body mass; and `station.train_h`, without which
+the view cannot compute the journey at all.
 
 **Check:** `select count(*) from route` returns 185, and every route resolves a
-massif and at least one access point.
+massif and at least one access point. Both pass, with zero orphans.
 
 ## 3. API
 
