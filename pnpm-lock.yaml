@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      '@prisma/client':
+        specifier: 6.5.0
+        version: 6.5.0(prisma@6.5.0(typescript@5.7.3))(typescript@5.7.3)
+      prisma:
+        specifier: 6.5.0
+        version: 6.5.0(typescript@5.7.3)
       typescript:
         specifier: 5.7.3
         version: 5.7.3

@@ -1,12 +1,338 @@
-// Models arrive with the database prompt. PostGIS is enabled by hand in the first
-// migration, and spatial columns are declared Unsupported("geography(...)").
+// Models are PascalCase and map to snake_case tables and columns, because docs/spec.md
+// writes the model in snake_case SQL and every raw query is written against those names.
+// PostGIS is enabled by hand in the first migration, never by Prisma: an extension Prisma
+// believes it owns is an extension it will try to drop. Spatial columns are
+// Unsupported("geography(...)"), so Prisma carries them through migrations without
+// reading them, and every spatial query is $queryRaw.
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum AccessPointKind {
+  station
+  parking
+  bus_stop
+  trailhead
+
+  @@map("access_point_kind")
+}
+
+enum AccessRole {
+  start
+  finish
+
+  @@map("access_role")
+}
+
+enum AccessMode {
+  train
+  car
+  bus
+  mixed
+
+  @@map("access_mode")
+}
+
+// Terrain and Technical carry the spreadsheet's own spellings in upper case. The seed
+// loads them directly and the derived view looks them up by exactly these values.
+enum Terrain {
+  FLAT
+  ROAD
+  FOREST
+  TRAIL
+  ROCKY
+  SCREE
+  LADDERS
+  CHAINS
+  EXPOSED
+  FERRATA
+  CLIMB
+
+  @@map("terrain")
+}
+
+enum Technical {
+  NONE
+  STEEP
+  LADDERS
+  CHAINS
+  SCRAMBLE
+  BEGINNER_CLIMB
+  EXPOSED
+  FERRATA_D
+  CLIMB
+
+  @@map("technical")
+}
+
+enum RouteCategoryName {
+  walking
+  wood_trail
+  hiking
+  scramble
+  via_ferrata
+  mountaineering
+  bouldering
+  ski_touring
+  snowshoe
+  cave_approach
+
+  @@map("route_category_name")
+}
+
+enum Season {
+  spring
+  summer
+  autumn
+  winter
+
+  @@map("season")
+}
+
+enum SeasonStatus {
+  normal
+  harder
+  dangerous
+  closed
+
+  @@map("season_status")
+}
+
+// The sheet's Confidence: H high, M medium, V verify on a map before you go.
+enum Confidence {
+  high
+  medium
+  verify
+
+  @@map("confidence")
+}
+
+// source and licence keep OpenStreetMap geometry separable from a recorded track.
+// OSM is ODbL; a track the user walked is the user's own. They never merge.
+enum GeometrySource {
+  osm
+  own
+
+  @@map("geometry_source")
+}
+
+enum Licence {
+  odbl
+  own
+
+  @@map("licence")
+}
+
+model Massif {
+  id        String                                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String                                   @unique
+  // Null for now. A human draws the polygons, which is a later unit of work.
+  area      Unsupported("geography(Polygon, 4326)")?
+  createdAt DateTime                                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime                                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  routes Route[]
+
+  @@map("massif")
+}
+
+model AccessPoint {
+  id         String                                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kind       AccessPointKind
+  name       String
+  point      Unsupported("geography(Point, 4326)")
+  altitudeM  Int?                                  @map("altitude_m")
+  note       String?
+  createdAt  DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime                              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  station     Station?
+  parking     Parking?
+  routeAccess RouteAccess[]
+
+  @@map("access_point")
+}
+
+model Station {
+  accessPointId String @id @map("access_point_id") @db.Uuid
+  // Hours from București Nord as a decimal, so 2.5 is two and a half hours. The Stations
+  // sheet carries it for all 31 stations and the derived view takes the larger of the
+  // start and finish figures.
+  trainH        Decimal @map("train_h") @db.Decimal(4, 2)
+  changes       Int
+  line          String?
+  note          String?
+
+  accessPoint AccessPoint @relation(fields: [accessPointId], references: [id], onDelete: Cascade)
+
+  @@map("station")
+}
+
+// Nothing in phase 1 fills this table. docs/phase-1.md lists it and a nullable table
+// costs nothing.
+model Parking {
+  accessPointId  String    @id @map("access_point_id") @db.Uuid
+  surface        String?
+  capacity       Int?
+  fee            String?
+  winterAccess   Boolean?  @map("winter_access")
+  highClearance  Boolean?  @map("high_clearance")
+  theftRisk      String?   @map("theft_risk")
+  lastVerifiedOn DateTime? @map("last_verified_on") @db.Date
+
+  accessPoint AccessPoint @relation(fields: [accessPointId], references: [id], onDelete: Cascade)
+
+  @@map("parking")
+}
+
+// No start_station_id and no finish_station_id. Those columns beside route_access are two
+// sources of truth for one fact. Every access point of a route, including the train pair
+// the spreadsheet gives, is a route_access row.
+model Route {
+  id             String                                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  massifId       String                                     @map("massif_id") @db.Uuid
+  nameRo         String                                     @map("name_ro")
+  nameEn         String?                                    @map("name_en")
+  // Store these four and derive the rest. The view computes moving time, day length,
+  // effort, difficulty and stage from them.
+  km             Decimal                                    @db.Decimal(5, 2)
+  ascentM        Int                                        @map("ascent_m")
+  terrain        Terrain
+  technical      Technical
+  // The sheet's Quiet 1-5. The catalogue filters on "quiet routes only".
+  quiet          Int
+  confidence     Confidence
+  // The sheet's Season, an availability window such as JUN-OCT, not a season. The four
+  // route_season rows are derived from it, and the raw window survives so they can be
+  // re-derived when the mapping rule improves.
+  seasonWindow   String                                     @map("season_window")
+  walkMin        Int                                        @default(0) @map("walk_min")
+  busMin         Int                                        @default(0) @map("bus_min")
+  shape          String?
+  notes          String?
+  historicSource String?                                    @map("historic_source")
+  historicStatus String?                                    @map("historic_status")
+  source         GeometrySource
+  licence        Licence
+  geomSimple     Unsupported("geography(LineString, 4326)")? @map("geom_simple")
+  // The spreadsheet's own ID, so the seed can be re-run without duplicating rows. Null
+  // for a route created by hand later, which has no sheet row.
+  seedId         Int?                                       @unique @map("seed_id")
+  createdAt      DateTime                                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime                                   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  massif     Massif          @relation(fields: [massifId], references: [id], onDelete: Restrict)
+  access     RouteAccess[]
+  categories RouteCategory[]
+  seasons    RouteSeason[]
+
+  @@index([massifId])
+  @@index([terrain])
+  @@index([technical])
+  @@index([quiet])
+  @@map("route")
+}
+
+// The composite key lets the same point start one route and finish another, and lets a
+// route reachable by train and by car be two more rows rather than a schema change.
+model RouteAccess {
+  routeId       String     @map("route_id") @db.Uuid
+  accessPointId String     @map("access_point_id") @db.Uuid
+  role          AccessRole
+  mode          AccessMode
+  approachMin   Int?       @map("approach_min")
+  note          String?
+
+  route       Route       @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  accessPoint AccessPoint @relation(fields: [accessPointId], references: [id], onDelete: Restrict)
+
+  @@id([routeId, accessPointId, role])
+  @@index([routeId])
+  @@map("route_access")
+}
+
+// At most one primary category per route, guaranteed by a partial unique index added by
+// hand in the migration, because Prisma cannot express one.
+model RouteCategory {
+  routeId   String            @map("route_id") @db.Uuid
+  category  RouteCategoryName
+  isPrimary Boolean           @map("is_primary")
+  setBy     String            @map("set_by")
+  setOn     DateTime          @map("set_on") @db.Timestamptz(6)
+
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@id([routeId, category])
+  @@map("route_category")
+}
+
+// Four rows per route from day one, even when all four hold the same number.
+model RouteSeason {
+  routeId          String       @map("route_id") @db.Uuid
+  season           Season
+  hikingDifficulty Int          @map("hiking_difficulty")
+  technicalGrade   Int          @map("technical_grade")
+  overall          Int
+  requiredGear     String[]     @map("required_gear")
+  daylightNote     String?      @map("daylight_note")
+  status           SeasonStatus
+  note             String?
+  setBy            String       @map("set_by")
+  setOn            DateTime     @map("set_on") @db.Timestamptz(6)
+
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@id([routeId, season])
+  @@index([routeId])
+  @@map("route_season")
+}
+
+model EditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tableName String   @map("table_name")
+  rowId     String   @map("row_id") @db.Uuid
+  field     String
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
+  at        DateTime @default(now()) @db.Timestamptz(6)
+  by        String
+
+  @@index([tableName, rowId])
+  @@map("edit_log")
+}
+
+// owner_id exists now, with one user, because retrofitting ownership is expensive. There
+// is no user table in phase 1; authentication compares one password against a hash in the
+// environment. The default matches SEED_OWNER_ID in .env.example.
+model Profile {
+  ownerId             String                                @id @default(dbgenerated("'00000000-0000-0000-0000-000000000001'::uuid")) @map("owner_id") @db.Uuid
+  dob                 DateTime?                             @db.Date
+  heightCm            Int?                                  @map("height_cm")
+  homePoint           Unsupported("geography(Point, 4326)")? @map("home_point")
+  // 500 m, because exports clip the first and last 500 m of any track that leaves the site.
+  homeClipM           Int                                   @default(500) @map("home_clip_m")
+  preferredAccessMode AccessMode?                           @map("preferred_access_mode")
+  createdAt           DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("profile")
+}
+
+// query holds the URL query string, because filter state lives in the URL and a saved set
+// is that string with a name on it.
+model SavedFilter {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId   String   @default(dbgenerated("'00000000-0000-0000-0000-000000000001'::uuid")) @map("owner_id") @db.Uuid
+  name      String
+  query     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([ownerId, name])
+  @@map("saved_filter")
 }

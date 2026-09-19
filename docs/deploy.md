@@ -81,7 +81,6 @@ IMAGE_TAG=latest
 POSTGRES_USER=treeline
 POSTGRES_PASSWORD=<a long random string>
 POSTGRES_DB=treeline
-DATABASE_URL=postgresql://treeline:<the same string>@db:5432/treeline
 REDIS_URL=redis://redis:6379
 MINIO_ROOT_USER=treeline
 MINIO_ROOT_PASSWORD=<a different long random string>
@@ -95,6 +94,11 @@ chmod 600 /root/treeline/.env
 Prints nothing. `TREELINE_HOST` must be a name that resolves to the box, because Caddy
 asks Let's Encrypt for a certificate for it. `89-167-90-189.sslip.io` resolves to
 `89.167.90.189` without any DNS of your own.
+
+There is no `DATABASE_URL` here. `api`, `worker` and `migrate` build their own connection
+string from `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB`, so the password is
+written once. The `DATABASE_URL` in `.env.example` is the host's view of a local database
+and nothing on the box reads it. Keep the password free of characters a URL reserves.
 
 ### 7. Push to main, and let the workflow run
 

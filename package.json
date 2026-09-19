@@ -10,6 +10,8 @@
     "test:e2e": "echo 'No end-to-end test yet. The first one arrives with the API prompt.'"
   },
   "devDependencies": {
+    "@prisma/client": "6.5.0",
+    "prisma": "6.5.0",
     "typescript": "5.7.3"
   }
 }
