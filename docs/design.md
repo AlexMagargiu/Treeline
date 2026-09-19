@@ -178,6 +178,31 @@ Pick these once. Changing one later is a design decision, not an implementation 
   so `dark:` and the tokens never disagree. One strategy, not two. There are three themes
   because the spec requires a high contrast mode for direct sun, and shadcn ships two.
 - **No pure black and no pure white.**
+- **Numbers on screen are formatted, never printed raw.** The view `route_derived` keeps
+  full `numeric` precision on purpose, so a corrected distance moves every figure that
+  depends on it. `2.5238095238095238` is a storage value and it must never reach a screen.
+  Every surface formats at the edge, in one shared helper, not per component:
+
+  | Value | On screen | Not |
+  | --- | --- | --- |
+  | Distance | `16.0 km`, one decimal always, so a column aligns | `16 km`, `16.00 km` |
+  | Ascent, descent | `1050 m`, whole metres | `1050.00 m` |
+  | Any duration | `8 h 20`, hours and minutes | `8.33 h`, `8.3333333 h` |
+  | Effort points | `26.5`, one decimal | `26.5000000000000000` |
+  | Difficulty, stage | whole numbers | any decimal |
+  | Energy | the net figure as the headline, gross behind it, both rounded to ten by the view | an unrounded figure, gross alone |
+
+  Durations are the one that matters most. `8.33 h` is a spreadsheet artefact, and nobody
+  standing on a platform converts it. Hours and minutes, every time.
+
+  **Energy, settled on 2026-09-19.** The catalogue's figure is gross: it includes the
+  roughly 130 kcal an hour a 130 kg walker burns sitting still, which is about 1100 kcal of
+  route 52's 6830. The headline is therefore the net figure, what the walk itself costs,
+  with the gross figure available behind it for anyone comparing against the original
+  spreadsheet. Both carry the plus or minus 25 percent band the spec requires. The band is
+  not decoration: for route 52 it spans 5120 to 8540, which brackets both the net figure
+  and the higher number the ACSM formula gives for the same day, so it is an honest
+  statement of how little anybody knows about this.
 
 ## 7. Decisions settled on 2026-09-19
 
