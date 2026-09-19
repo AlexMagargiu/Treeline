@@ -1,0 +1,148 @@
+# Phase 1 — a catalogue you can plan from
+
+Spec sections that cover this phase: Purpose and scope, Access, Architecture and
+hosting, Clients and platforms, Data model, The trail network as a graph (read
+it, do not build it yet), Route catalogue and map, Classification and seasonal
+difficulty, Access modes, Navigation and screens.
+
+## Goal
+
+Open the site on a phone, see Romania with the massifs shaded, tap Bucegi, filter
+the trails, open one, and read everything known about it for the season you are
+in. No visits, no photographs, no tracking. Just a catalogue worth planning from.
+
+## Done when
+
+- [ ] The site answers on HTTPS at a real hostname, behind the password gate.
+- [ ] 185 routes, their stations and their massifs are in the database.
+- [ ] The country map shades massifs and the counts are correct.
+- [ ] The six filter chips work, the drawer works, a saved set survives a reload.
+- [ ] A trail page shows the current season's difficulty first.
+- [ ] Everything above works at 320 px with no sideways scrolling.
+- [ ] `docker compose up -d` on a clean VPS reproduces all of it.
+
+## Not in this phase
+
+Segments and nodes (phase 2), visits, sessions, photographs, gear, tracking,
+trips, warnings feeds, PDF output. Do not build toward them either; read the
+spec for them so today's schema does not block them.
+
+---
+
+## 1. Infrastructure
+
+- [ ] `docker-compose.yml` with web, api, worker, db (postgis/postgis:17),
+      redis, minio, caddy. Postgres and Redis publish no host ports.
+- [ ] `.env.example` checked in, `.env` never.
+- [ ] Caddyfile: one hostname, `/api/*` to the API, everything else to Next.js,
+      automatic TLS.
+- [ ] Named volumes for `db`, `minio` and `caddy_data`. Tiles on their own
+      volume; they will reach tens of gigabytes.
+- [ ] GitHub Actions: build both images, push to ghcr.io, `docker compose pull`
+      and `up -d` over SSH. Migrations run as a one-shot container before the
+      API starts.
+- [ ] VPS hardening: SSH keys only, firewall open on 22, 80, 443, fail2ban,
+      unattended security upgrades.
+- [ ] Nightly `pg_dump` to a second location. Do this now, not later.
+
+**Check:** destroy the stack, `docker compose up -d`, and the site returns.
+
+## 2. Database and seed
+
+- [ ] Enable PostGIS in the first migration, by hand.
+- [ ] Prisma schema for this phase only:
+      `massif`, `access_point`, `station`, `parking`, `route`, `route_access`,
+      `route_category`, `route_season`, `edit_log`, `profile`, `saved_filter`.
+- [ ] Spatial columns as `Unsupported("geography(...)")`, GiST index on each.
+- [ ] `owner_id` on `profile` and `saved_filter` now, defaulted to a seed user.
+- [ ] Seed script: export the Routes sheet of the spreadsheet to CSV, load
+      stations first, then massifs, then routes, then one `route_season` row per
+      route per season from the catalogue's current single difficulty.
+- [ ] Massif polygons drawn by hand once, with the rule that a route belongs to
+      the massif of its key point.
+- [ ] `route.geom_simple` stays null for now. Nothing in phase 1 requires it.
+
+**Check:** `select count(*) from route` returns 185, and every route resolves a
+massif and at least one access point.
+
+## 3. API
+
+- [ ] Auth: `POST /auth/login` compares against an argon2id hash in the
+      environment, issues a bearer token, sets a signed httpOnly cookie for 30
+      days. Rate limit to 5 attempts per IP per 15 minutes.
+- [ ] `GET /massifs` with per-massif counts: routes known, routes walked (zero
+      for now), last visited (null for now).
+- [ ] `GET /routes` taking every filter in the spec, plus sort and pagination.
+      One raw SQL query, not a query builder assembling twenty optional clauses.
+- [ ] `GET /routes/:id` returning the route, its categories, all four season
+      rows, and its access points with approach times.
+- [ ] `PATCH /routes/:id` writing to `edit_log` on every field change.
+- [ ] `GET /saved-filters`, `POST /saved-filters`, `DELETE /saved-filters/:id`.
+- [ ] Derived values (moving time, day length, effort, difficulty, stage, trip
+      type, energy) computed in one SQL view, never in TypeScript. Correcting a
+      distance must update everything that depends on it.
+
+**Check:** the filter endpoint returns the same counts the map shows.
+
+## 4. Tiles
+
+- [ ] Cut a Romania extract from the Protomaps basemap to PMTiles, about 300 to
+      400 MB, and serve it from Caddy with range requests enabled.
+- [ ] Contours for Bucegi only, at a 20 m interval: `gdal_contour` over the
+      Copernicus 30 m DEM, then tippecanoe, then PMTiles.
+- [ ] Terrain-RGB tiles for Bucegi, hillshade rendered by MapLibre in the
+      browser.
+- [ ] A documented script that rebuilds all three, because you will run it once
+      per massif for the next year.
+
+**Check:** the map loads over 3G-speed throttling without blocking first paint.
+
+## 5. Frontend
+
+- [ ] Next.js with middleware guarding every route but `/login` and `/health`.
+- [ ] PWA: manifest, installable, offline shell. No offline data yet.
+- [ ] Country map: MapLibre, massifs shaded, switchable between share of
+      network walked, routes walked, and time since last visit.
+      **Empty state matters:** with no visits, every massif reads "never
+      visited". Shade by routes known instead, and say so in the legend.
+- [ ] Bottom sheet over the map, three rest positions: massif summary, trail
+      list, trail. The map never unmounts.
+- [ ] Filters: six chips always visible, the rest in a drawer, state in the URL,
+      saved sets above the chips.
+- [ ] Trail page: current season first, the other three behind a toggle,
+      categories, access points with approach times and the return problem when
+      the mode is car, and an edit affordance on every field.
+- [ ] Do not request location on launch. Ask when a "near me" action needs it.
+
+**Check:** a filter set is shareable as a URL and restores exactly.
+
+## 6. Quality floor
+
+- [ ] 320, 360, 390 and 412 px all correct. No fixed pixel widths anywhere.
+- [ ] Dark mode, and a high-contrast mode for direct sun.
+- [ ] Visible keyboard focus, `prefers-reduced-motion` respected.
+- [ ] Touch targets at least 48 px.
+- [ ] One end-to-end test: log in, filter, open a trail, read the season row.
+
+---
+
+## Gotchas
+
+**Prisma and PostGIS.** Prisma cannot read a geography column. Every spatial
+read is `$queryRaw` returning GeoJSON via `ST_AsGeoJSON`. Keep them in
+`src/spatial/*.repository.ts` and nowhere else.
+
+**The filter query.** Twenty optional filters assembled by a query builder
+produces unreadable SQL and bad plans. Write one parameterised statement with
+`(:param IS NULL OR column = :param)` clauses and read the plan once it is done.
+
+**Massif shading at launch.** Everything is zero. Decide the empty state before
+you build the legend, or the first screen you ever see is discouraging.
+
+**Seasons.** Four rows per route from day one, even when all four hold the same
+number. Retro-fitting the fourth row later means touching every query that
+filters on difficulty.
+
+**Do not model segments yet, but do not fight them.** Keep route geometry in one
+column and out of the API contract's shape. In phase 2 a route becomes an
+ordered list of segments, and the endpoints above should not have to change.
