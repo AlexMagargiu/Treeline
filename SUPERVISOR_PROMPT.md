@@ -117,11 +117,12 @@ the whole stack has a stated ceiling.
   their own volume with a 15 GB budget inside the 25 GB, enough for the Romania basemap
   plus Bucegi, and small enough to notice before the disk fills.
 
-One thing stays the user's to decide rather than Claude's to check: whether the phase-1
-hardening line (`ufw`, `fail2ban`, unattended upgrades) applies at all. It is a change to a
-box running other people's live services, where `ufw` is inactive on purpose
-and the Hetzner Cloud firewall is the control, so it stays out of the infrastructure
-prompt until the user says otherwise.
+**Hardening, settled on 2026-09-19 and read off the box.** Root is key-only,
+`unattended-upgrades` is installed and enabled, and the Hetzner Cloud firewall controls 22,
+80 and 443 from outside the machine, which is why `ufw` stays inactive. `fail2ban` is
+deliberately not installed: a box-wide IP ban on a host shared with live services is a risk
+to them and not a protection for Treeline. `docs/phase-1.md` carries the same, with the
+evidence. Revisit only if the host stops being shared.
 
 ### Verification
 
@@ -338,28 +339,33 @@ Measured from the file, not estimated:
 - `Confidence` means H = well documented, M = partly documented, V = verify on a map
   before you go. The spec does not name this column. It has to land somewhere.
 
-### Four things about the seed that need a decision before the seed prompt is written
+### The four seed decisions, all settled on 2026-09-19
 
-1. **The massif list does not match the spec.** The sheet carries 15 labels; the spec names
-   six massifs for the first pass. Four labels are not massifs at all (Bucharest area,
-   Prahova hills, Slanic, Intorsurii), and Bucegi is split into "Bucegi" and "Bucegi west".
-   Phase 1 needs a hand-drawn polygon per massif and the rule that a route belongs to the
-   massif of its key point. Somebody has to say which 15 become how many.
-2. **No name in the file carries diacritics.** Zero of 185 route names and none of the 31
-   station names. The spec requires Romanian place names with diacritics, and forbids
-   translating a name that appears on a signpost. `route.name_ro` therefore needs a hand
-   pass over 185 rows before the seed is honest. Decide who does it and when.
-3. **The `Season` column is an availability window, not a season.** JUN-OCT is a window;
-   `route_season` wants four rows per route, one per season, each with a difficulty and a
-   status of normal, harder, dangerous or closed. Phase 1 says to write four rows from the
-   catalogue's single difficulty. The window maps onto `status`, and the mapping rule is
-   not written anywhere yet.
-4. **`Done`, `Date done` and `My rating 1-5` are columns in the sheet, and every one of
-   them is empty.** Measured on 2026-09-19: the Routes sheet carries 33 columns, not 27,
-   and those three hold nothing in all 185 rows. No route is marked walked. That is consistent with phase 1, where every visit count is
-   zero, and it is the reason the empty state matters.
+1. **The massif list: 15 entities**, written into `prisma/fixtures/route-massif.csv` and
+   `massifs.csv`. The sheet's `Bucegi west` folds into Bucegi, because it is the Ialomița
+   valley, Padina and Peștera and the OpenStreetMap relations cross the split. The sheet's
+   `Bucharest area` splits into Comana and Nordul Bucureștiului, which are 50 km apart on
+   opposite sides of the city. `Slanic` becomes Slănic Prahova, `Prahova hills` becomes
+   Dealurile Prahovei, `Intorsurii` becomes Clăbucetele Întorsurii. Counts still sum to 185.
+2. **Diacritics: drafted, not checked.** 148 of the 185 route names and 18 of the 31
+   station names changed. The user chose not to review them and will correct what they
+   catch in the field. The mapping is word level in `prisma/fixtures/route-names.csv`, so a
+   correction is one line of data.
+3. **Season windows map to nothing.** All four `route_season` rows are `normal`, because
+   nobody has walked these in February. `route.season_window` keeps `JUN-OCT` verbatim and
+   the trail page shows it beside the season rows, so the page never claims February is
+   normal.
+4. **`Confidence` is `route.confidence`**, an enum of high, medium and verify.
 
----
+**Geometry, and the licence line that comes with it.** Five massif polygons and thirty
+station points are OpenStreetMap, so ODbL; ten polygons and one station point are drawn and
+are the project's own. `massif` and `access_point` therefore gain `source` and `licence` in
+the seed migration, which rule 5 requires and the spec's SQL block omits. Romania has no
+mountain range polygons in OpenStreetMap at all: ten elements in the country carry
+`natural=mountain_range` and they are Carpathian-scale. The five real outlines come from
+Natura 2000 and park boundaries, rebuilt by PostGIS and simplified to about 400 m.
+`prisma/fixtures/README.md` carries the provenance in full, including why the OSM relation
+named Leaota is not used.
 
 ### Three schema decisions settled on 2026-09-19
 

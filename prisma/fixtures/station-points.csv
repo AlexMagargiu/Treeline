@@ -1,0 +1,32 @@
+name_ro,lat,lon,source,licence,note
+București Nord,44.44674,26.07384,osm,odbl,OSM name: Gara de Nord
+Comana,44.17106,26.14674,osm,odbl,
+Mogoșoaia,44.53531,26.02346,osm,odbl,
+Buftea,44.56410,25.95728,osm,odbl,
+Câmpina,45.13219,25.71165,osm,odbl,
+Comarnic,45.24223,25.63341,osm,odbl,
+Posada,45.28099,25.61771,osm,odbl,
+Sinaia,45.35256,25.55283,osm,odbl,
+Bușteni,45.41588,25.53736,osm,odbl,
+Azuga,45.44503,25.55249,osm,odbl,
+Predeal,45.50506,25.57493,osm,odbl,
+Timișu de Jos,45.58474,25.62345,osm,odbl,OSM name: Timișu de Jos hc
+Timișu de Sus,45.54720,25.58826,osm,odbl,
+Dârste,45.61884,25.65360,osm,odbl,
+Brașov,45.66121,25.61358,osm,odbl,
+Codlea,45.69352,25.45693,osm,odbl,
+Vlădeni,45.76350,25.37432,osm,odbl,OSM name: Vlădeni Ardeal
+Săcele,45.62080,25.69250,drawn,own,"approximate, OSM has no station node at Sacele"
+Râșnov,45.59485,25.45817,osm,odbl,
+Zărnești,45.56276,25.32852,osm,odbl,
+Întorsura Buzăului,45.67509,26.02730,osm,odbl,
+Ucea de Jos,45.79222,24.67736,osm,odbl,OSM name: Ucea
+Porumbacu de Jos,45.76609,24.45600,osm,odbl,OSM name: Porumbacu
+Avrig,45.73209,24.37423,osm,odbl,
+Vălenii de Munte,45.17951,26.03422,osm,odbl,
+Măneciu,45.31544,25.99715,osm,odbl,
+Slănic Prahova,45.23175,25.93876,osm,odbl,OSM name: Slănic
+Fieni,45.12566,25.42122,osm,odbl,
+Pietroșița,45.18365,25.43958,osm,odbl,OSM name: Gara Pietroșița
+Nehoiașu,45.43137,26.30614,osm,odbl,
+Breaza,45.17287,25.68560,osm,odbl,
