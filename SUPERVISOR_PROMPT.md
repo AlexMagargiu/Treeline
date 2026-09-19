@@ -384,6 +384,18 @@ One addition the spec does not carry and the derivation contract requires: `stat
 the train hours from București Nord that the Stations sheet holds for all 31 stations.
 Without it the derived view cannot compute `train_h = max(start, finish)`.
 
+**A thirty-second station.** Route 135, "Breaza terraces loop", starts and finishes at
+Breaza, which the Stations sheet does not list, so the sheet computed it with `train_h = 0`
+and understates that row's day length by two train journeys. The user confirmed the figure
+on 2026-09-19: **Breaza, 1.50 hours from București Nord, line M300, no changes**, which
+sits correctly between Câmpina at 1.2 and Posada at 1.6. The seed inserts it, and route 135
+is the single documented exception in the view's 185-row equality test, asserted as the
+sheet's day length plus exactly 3.00.
+
+`profile` also gains `weight_kg` and `pack_kg`, settled the same day, because the spec says
+the energy figure reads body mass and pack weight live from the profile while its own
+`profile` definition lists neither. `body_metric` supersedes `weight_kg` in phase 8.
+
 ## Phase 1 — the board
 
 **Status: not started.** No infrastructure, no schema, no code.
