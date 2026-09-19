@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Checking design rules",
+            "timeout": 10,
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; case \"$f\" in *.tsx|*.jsx|*.css|*.scss) jq -n --arg m 'This is a frontend file. Before writing markup: load the skill design-taste-frontend and read docs/design.md, and say in one line that you did. The dials are fixed at DESIGN_VARIANCE 3, MOTION_INTENSITY 2, VISUAL_DENSITY 6 and are not re-derived. Zero em dashes and zero en dashes in any string that ships. Section 2 of docs/design.md says which parts of the skill bind to this product. Before you report done, write out the pre-flight check in section 9 of docs/design.md, every box Pass or Fail with one line each.' '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:$m}}';; esac; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
