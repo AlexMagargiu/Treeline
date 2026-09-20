@@ -162,12 +162,18 @@ range.
       visited". Shade by routes known instead, and say so in the legend.
 - [ ] Bottom sheet over the map, three rest positions: massif summary, trail
       list, trail. The map never unmounts.
-- [ ] Filters: six chips always visible, the rest in a drawer, state in the URL,
-      saved sets above the chips.
-- [ ] Trail page: current season first, the other three behind a toggle,
-      categories, access points with approach times and the return problem when
-      the mode is car, and an edit affordance on every field.
-- [ ] Do not request location on launch. Ask when a "near me" action needs it.
+- [x] Filters: six chips always visible, the rest in a drawer, state in the URL,
+      saved sets above the chips. Four chips cannot change the result set yet and
+      the screen says so in one line rather than pretending. Nine drawer filters
+      from the spec are left out because each needs a table that does not exist,
+      and category is left out because it would always return zero rows.
+- [x] Trail page: current season first, the other three behind a toggle,
+      categories, access points, and an edit affordance on the eleven editable
+      fields, with the derived figures moving in the same response. Approach
+      times render as absent because `approach_min` is null on all 370 rows, and
+      the car return problem is not built because all 370 rows are `train`.
+- [x] Do not request location on launch. Nothing asks; there is no "near me"
+      action in phase 1 to ask for.
 
 **Check:** a filter set is shareable as a URL and restores exactly.
 

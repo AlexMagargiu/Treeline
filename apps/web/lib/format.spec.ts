@@ -1,4 +1,5 @@
 import {
+  formatApproachMin,
   formatAscentM,
   formatDistanceKm,
   formatDuration,
@@ -87,6 +88,21 @@ describe('formatKcal', () => {
   });
 });
 
+describe('formatApproachMin', () => {
+  it('renders an approach in minutes, never as a decimal hour', () => {
+    expect(formatApproachMin(25)).toBe('25 min');
+    expect(formatApproachMin('40')).toBe('40 min');
+    expect(formatApproachMin(0)).toBe('0 min');
+  });
+
+  // approach_min is null on all 370 seeded route_access rows, so this is what the trail
+  // page actually shows today. A fabricated figure would be worse than the hyphen.
+  it('renders a hyphen when the approach time is not recorded', () => {
+    expect(formatApproachMin(null)).toBe('-');
+    expect(formatApproachMin(undefined)).toBe('-');
+  });
+});
+
 describe('every formatter', () => {
   // The em dash and en dash ban covers every shipped string, and a formatter's output is
   // one. The hyphen placeholder is the only dash any of them can produce.
@@ -100,6 +116,8 @@ describe('every formatter', () => {
       formatEffortPoints(null),
       formatWhole(null),
       formatKcal(null),
+      formatApproachMin(null),
+      formatApproachMin(25),
     ].join('');
     expect(outputs).not.toMatch(/[\u2013\u2014]/);
   });

@@ -60,6 +60,18 @@ export function formatWhole(value: string | number | null | undefined): string {
   return number === null ? ABSENT : String(Math.round(number));
 }
 
+/**
+ * `25 min`. The walk from the platform to where the trail starts.
+ *
+ * Minutes, not a decimal hour and not `0 h 25`: an approach is a short walk and nobody
+ * thinks of it in hours. `route_access.approach_min` is null on all 370 seeded rows, so
+ * today this renders the absent marker every time, which is the honest answer.
+ */
+export function formatApproachMin(value: string | number | null | undefined): string {
+  const minutes = toNumber(value);
+  return minutes === null ? ABSENT : `${Math.round(minutes)} min`;
+}
+
 /** `5700 kcal`. The view has already rounded these to the nearest ten. */
 export function formatKcal(value: string | number | null | undefined): string {
   const kcal = toNumber(value);

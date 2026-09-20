@@ -1,12 +1,14 @@
-import { OctagonX, RouteOff, TriangleAlert } from 'lucide-react';
+import { FilterX, RouteOff } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { SeasonStatus } from '@/components/season-status';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { RouteList, RouteListItem } from '@/lib/api';
+import type { Sort } from '@/lib/filters';
 import { formatAscentM, formatDistanceKm, formatDuration, formatWhole } from '@/lib/format';
 import { createGloss } from '@/lib/gloss';
-import { cn } from '@/lib/utils';
 
 /**
  * The trails in a massif, as a column of figures you can read down.
@@ -19,15 +21,33 @@ import { cn } from '@/lib/utils';
  * The column headings are written once above the list rather than on every row, because
  * the reason this reads as an instrument is that four figures line up down the screen.
  */
-export function TrailList({ list, massifId }: { list: RouteList; massifId: string }): ReactNode {
-  if (list.routes.length === 0) return <EmptyTrails />;
+export function TrailList({
+  list,
+  massifId,
+  query,
+  sort,
+  filtered,
+  onClear,
+}: {
+  list: RouteList;
+  massifId: string;
+  /** The filter set as a query string, carried onto every row so going back restores it. */
+  query: string;
+  sort: Sort;
+  filtered: boolean;
+  onClear: () => void;
+}): ReactNode {
+  if (list.routes.length === 0) {
+    return <EmptyTrails filtered={filtered} onClear={onClear} />;
+  }
 
   const gloss = createGloss();
 
   return (
     <>
+      {/* The drawer can change the order, so the line that describes it has to follow. */}
       <p className="mt-1 text-sm leading-6 text-muted-foreground">
-        Anything unusual for {list.season} is last. Otherwise the shortest days come first.
+        {orderNote(sort, list.season)}
       </p>
 
       <div
@@ -46,6 +66,7 @@ export function TrailList({ list, massifId }: { list: RouteList; massifId: strin
             <TrailRow
               route={route}
               massifId={massifId}
+              query={query}
               name={gloss(route.nameRo, route.nameEn)}
               season={list.season}
             />
@@ -59,25 +80,28 @@ export function TrailList({ list, massifId }: { list: RouteList; massifId: strin
 function TrailRow({
   route,
   massifId,
+  query,
   name,
   season,
 }: {
   route: RouteListItem;
   massifId: string;
+  query: string;
   name: string;
   season: string;
 }): ReactNode {
   const status = route.season?.status ?? 'normal';
+  const path = `/massif/${massifId}/trail/${route.id}`;
 
   return (
     <Link
-      href={`/massif/${massifId}/trail/${route.id}`}
+      href={query === '' ? path : `${path}?${query}`}
       className="flex min-h-14 flex-col justify-center gap-1 rounded-md px-1 py-2 active:translate-y-px"
     >
       <span className="truncate font-medium">{name}</span>
 
       {/* Warnings render above the description, never below it. */}
-      {status !== 'normal' && <SeasonWarning status={status} season={season} />}
+      {status !== 'normal' && <SeasonStatus status={status} season={season} />}
 
       <span className="grid grid-cols-4 gap-x-2 font-mono text-sm tabular-nums">
         <span>{formatDistanceKm(route.km)}</span>
@@ -92,45 +116,59 @@ function TrailRow({
   );
 }
 
-/**
- * Status is state, not identity, so it never travels on colour alone: an icon and the word
- * carry it, and the colour only reinforces them.
- */
-function SeasonWarning({ status, season }: { status: string; season: string }): ReactNode {
-  const severe = status === 'dangerous' || status === 'closed';
-  const Icon = status === 'closed' ? OctagonX : TriangleAlert;
-  const wording: Record<string, string> = {
-    harder: `Harder in ${season}`,
-    dangerous: `Dangerous in ${season}`,
-    closed: `Closed in ${season}`,
-  };
-
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit items-center gap-1.5 rounded-sm border px-1.5 py-0.5 text-xs',
-        severe ? 'border-destructive text-destructive' : 'text-muted-foreground',
-      )}
-    >
-      <Icon aria-hidden strokeWidth={1.75} className="size-3.5" />
-      {wording[status] ?? `Not normal in ${season}`}
-    </span>
-  );
+/** What the order actually is, in the reader's terms rather than a parameter name. */
+function orderNote(sort: Sort, season: string): string {
+  switch (sort) {
+    case 'km':
+      return 'Shortest distance first.';
+    case 'ascent':
+      return 'Least ascent first.';
+    case 'difficulty':
+      return `Easiest for ${season} first.`;
+    case 'dayLength':
+      return 'Shortest day first.';
+    case 'name':
+      return 'In alphabetical order.';
+    default:
+      return `Anything unusual for ${season} is last. Otherwise the shortest days come first.`;
+  }
 }
 
 /**
- * Cannot happen today, because there are no filters yet and every massif has at least one
- * route. It is here because the next prompt adds six filter chips and a drawer, and the
- * first thing a filter does is return nothing.
+ * The two ways a list can be empty, which are not the same fact.
+ *
+ * A filter set that matches nothing is the one that will actually be seen, and it needs a
+ * way back out or it is a dead end: the chips are still on screen above it, but the reader
+ * who narrowed too far wants one tap, not six. The other case, a massif whose routes are
+ * not in the catalogue, cannot happen today and is still worth telling apart, because
+ * "nothing matched" and "nothing is here" would otherwise be the same picture.
  */
-function EmptyTrails(): ReactNode {
+function EmptyTrails({
+  filtered,
+  onClear,
+}: {
+  filtered: boolean;
+  onClear: () => void;
+}): ReactNode {
+  const Icon = filtered ? FilterX : RouteOff;
+
   return (
     <div className="mt-3 rounded-lg border border-dashed p-4">
-      <RouteOff aria-hidden className="size-6 text-muted-foreground" />
-      <h4 className="mt-3 font-medium">No trails here yet</h4>
+      <Icon aria-hidden className="size-6 text-muted-foreground" strokeWidth={1.75} />
+      <h4 className="mt-3 font-medium">
+        {filtered ? 'Nothing matches those filters' : 'No trails here yet'}
+      </h4>
       <p className="mt-1 text-sm leading-6 text-muted-foreground">
-        This massif is in the catalogue but none of its routes are.
+        {filtered
+          ? 'Every route in this massif is outside the set you have on. Widen one of them, or clear the lot and start again.'
+          : 'This massif is in the catalogue but none of its routes are.'}
       </p>
+      {filtered && (
+        <Button type="button" variant="outline" onClick={onClear} className="mt-4 w-auto px-6">
+          <FilterX aria-hidden strokeWidth={1.75} />
+          Clear the filters
+        </Button>
+      )}
     </div>
   );
 }

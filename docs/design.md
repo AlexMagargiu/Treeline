@@ -95,7 +95,7 @@ deliberate reading of the skill's own rule that a claimed dial must be shown.
 
 ## 5. Divergences from the skill, with evidence
 
-The skill allows divergence when it is evidenced and written down. These five are.
+The skill allows divergence when it is evidenced and written down. These six are.
 
 1. **No decorative photography in phase 1.** The skill says a text only page is incomplete
    work and to reach for a generation tool, then Picsum. Treeline has no photographs until
@@ -119,6 +119,27 @@ The skill allows divergence when it is evidenced and written down. These five ar
    repository documents or commit messages, which follow the Writing and Commits sections
    of `CLAUDE.md`. The rule exists because the em dash is the clearest tell in generated
    interface copy, not because the character is wrong.
+
+6. **Two controls are native HTML, not shadcn/ui.** Added 2026-09-20, after the catalogue
+   screens shipped with them and a review pointed out that the reasoning existed only in a
+   code comment.
+
+   A `<select>` for the enum fields, in `components/ui/native-select.tsx`, retuned to our
+   tokens. shadcn's `Select` needs `@radix-ui/react-select`, and on Android the native
+   picker is the better control in gloves: it is the one the operating system already
+   renders full screen with large targets, and it needs no popover, no portal and no focus
+   management of ours. The dependency would buy a worse control.
+
+   A disclosure built from `{open && <div>}` for the filter drawer, the save panel and the
+   season toggle, rather than shadcn's `Collapsible`, `Sheet` or `Dialog`, each of which
+   pulls its own Radix package. None of the three is a modal: they all expand inside the
+   bottom sheet, which already owns the focus surface, and a dialog inside a dragged sheet
+   is two focus traps arguing.
+
+   The lock in section 6 still holds. This is not a second component system: nothing from
+   Fluent, Carbon, Material or Radix Themes enters the tree, and every shadcn component
+   that is used is still owned and retuned. It is the narrower point that a plain HTML
+   element beats a component when the component's only contribution is a dependency.
 
 ## 6. Locked for the whole product
 

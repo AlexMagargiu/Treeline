@@ -46,10 +46,10 @@ async function readError(response: Response): Promise<ErrorBody> {
   }
 }
 
-export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+async function request(path: string, init: RequestInit): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(path, { credentials: 'same-origin', signal });
+    response = await fetch(path, { credentials: 'same-origin', ...init });
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause;
     throw new ApiError('offline', null, null, 'No connection.');
@@ -72,6 +72,35 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
     );
   }
 
+  return response;
+}
+
+export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const response = await request(path, { signal });
+  return (await response.json()) as T;
+}
+
+/**
+ * A write, which is the other half of the trail page and of a saved set.
+ *
+ * The same failure handling as `apiGet`, because a 401 on a save has to reach the gate the
+ * same way a 401 on a read does. `DELETE /saved-filters/:id` answers 204 with no body, so
+ * an empty reply resolves to undefined rather than throwing on a JSON parse; callers that
+ * expect nothing back type it as void.
+ */
+export async function apiSend<T>(
+  path: string,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  body?: unknown,
+): Promise<T> {
+  const response = await request(path, {
+    method,
+    ...(body === undefined
+      ? {}
+      : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+  });
+
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
@@ -113,5 +142,102 @@ export interface RouteList {
   limit: number;
   offset: number;
   season: string;
+  /**
+   * False, and false for the whole of phase 1. `visit` arrives in phase 4, so the server
+   * accepts the chip's parameter and says plainly that it narrowed nothing. The screen
+   * reads this rather than knowing it, so the chip tells the truth by itself the day the
+   * server starts applying it.
+   */
+  notWalkedApplied: boolean;
   routes: RouteListItem[];
+}
+
+/** A saved set: a name and the query string it stands for, stored verbatim by the API. */
+export interface SavedFilter {
+  id: string;
+  name: string;
+  query: string;
+  createdAt: string;
+}
+
+/** One of the four rows of `route_season`. Stored numbers, not derived ones. */
+export interface RouteSeason {
+  season: string;
+  hikingDifficulty: number;
+  technicalGrade: number;
+  overall: number;
+  requiredGear: string[];
+  daylightNote: string | null;
+  status: string;
+  note: string | null;
+  setBy: string;
+  setOn: string;
+}
+
+export interface RouteCategory {
+  category: string;
+  isPrimary: boolean;
+  setBy: string;
+  setOn: string;
+}
+
+export interface RouteAccess {
+  accessPointId: string;
+  name: string;
+  kind: string;
+  role: string;
+  mode: string;
+  approachMin: number | null;
+  altitudeM: number | null;
+  note: string | null;
+}
+
+/**
+ * The derived block, every figure of it computed by the view `route_derived`.
+ *
+ * All the numerics arrive as text and stay text. Correcting a distance moves every one of
+ * them, which is the whole reason the view exists, and formatting is the only thing the
+ * browser is allowed to do to them.
+ */
+export interface RouteDerived {
+  trainH: string | null;
+  met: string;
+  movingNowH: string;
+  movingFitH: string;
+  dayLengthH: string | null;
+  effortPoints: string;
+  hikingDifficulty: number;
+  technicalScore: number;
+  overallDifficulty: number;
+  stage: number;
+  tripType: string | null;
+  kcal: string | null;
+  kcalLow: string | null;
+  kcalHigh: string | null;
+  kcalNet: string | null;
+  kcalNetLow: string | null;
+  kcalNetHigh: string | null;
+}
+
+/** A route as `GET /api/routes/:id` and `PATCH /api/routes/:id` both return it. */
+export interface RouteDetail {
+  id: string;
+  seedId: number | null;
+  nameRo: string;
+  nameEn: string | null;
+  massif: { id: string; name: string };
+  km: string;
+  ascentM: number;
+  terrain: string;
+  technical: string;
+  quiet: number;
+  confidence: string;
+  seasonWindow: string;
+  shape: string | null;
+  notes: string | null;
+  season: { season: string; status: string; overall: number | null } | null;
+  categories: RouteCategory[];
+  seasons: RouteSeason[];
+  access: RouteAccess[];
+  derived: RouteDerived | null;
 }
