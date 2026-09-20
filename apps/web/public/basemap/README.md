@@ -17,8 +17,21 @@ A phone downloads only the ranges a label on its screen actually uses.
 | `fonts/Noto Sans {Regular,Medium,Italic}/*.pbf` | SDF glyph ranges | `protomaps.github.io/basemaps-assets/fonts/` |
 | `sprites/{grayscale,black}{,@2x}.{json,png}` | icon sheets | `protomaps.github.io/basemaps-assets/sprites/v4/` |
 
-Noto Sans is licensed under the SIL Open Font Licence 1.1. The sprite sheets come from the
-Protomaps basemaps-assets repository, BSD 3-Clause.
+## Licences, and a correction
+
+Both licence texts are vendored beside the files they cover, in `licences/`, because the
+OFL requires its text to travel with any redistributed copy of the font and the MIT licence
+requires its notice to travel with the icons. A prose credit is not the licence.
+
+| What | Licence | Text |
+| --- | --- | --- |
+| `fonts/Noto Sans *` | SIL Open Font Licence 1.1 | `licences/OFL-1.1-Noto-Sans.txt` |
+| `sprites/*` | MIT, derived from `tangrams/icons` | `licences/MIT-tangrams-icons.txt` |
+
+This file previously said the sprites were BSD 3-Clause. They are not. The
+`protomaps/basemaps-assets` repository carries no licence file of its own and its README
+states the licence per directory: the fonts are OFL, and the sprites are "derived from
+MIT-licensed tangrams/icons". Checked against the upstream repository on 2026-09-20.
 
 ## The ranges, and why these ones
 
