@@ -20,3 +20,8 @@ docker-compose.override.yml
 CODING_PROMPT_*.md
 
 backups/
+
+# Tile builds. The repository holds infra/tiles/build.sh and its README; the files
+# themselves live in the tiles volume and are shipped up by hand. See infra/tiles/README.md.
+infra/tiles/out/
+infra/tiles/work/

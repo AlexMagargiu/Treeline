@@ -17,6 +17,9 @@ services:
       - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      # Read-only: the tile files are built on a developer machine and shipped up. Nothing
+      # in the stack writes them, and Caddy serving them by range request is all they need.
+      - tiles:/srv/tiles:ro
     depends_on:
       web:
         condition: service_healthy
@@ -191,7 +194,7 @@ volumes:
   minio_data:
   caddy_data:
   caddy_config:
-  # Declared now, mounted by the section 4 prompt. It grows to tens of gigabytes, so it is
-  # named here to keep it off the container layer and out of a later migration.
+  # Mounted read-only by proxy. It grows to tens of gigabytes, so it is named here to keep
+  # it off the container layer and out of a later migration.
   tiles:
   backups:

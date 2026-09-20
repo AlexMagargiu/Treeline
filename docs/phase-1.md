@@ -127,16 +127,27 @@ phase 2, or with a hand pass before it.
 
 ## 4. Tiles
 
-- [ ] Cut a Romania extract from the Protomaps basemap to PMTiles, about 300 to
-      400 MB, and serve it from Caddy with range requests enabled.
-- [ ] Contours for Bucegi only, at a 20 m interval: `gdal_contour` over the
-      Copernicus 30 m DEM, then tippecanoe, then PMTiles.
-- [ ] Terrain-RGB tiles for Bucegi, hillshade rendered by MapLibre in the
-      browser.
-- [ ] A documented script that rebuilds all three, because you will run it once
-      per massif for the next year.
+- [x] Romania extract of the Protomaps basemap as PMTiles, served from Caddy with
+      range requests. 643 MB at z0-14, from `pmtiles extract` against the
+      published build rather than a Planetiler run.
+- [x] Contours for Bucegi at a 20 m interval, from the Copernicus 30 m DEM.
+      7.8 MB, z10-14, elevations 420 m to 2500 m.
+- [x] Terrain-RGB for Bucegi, hillshade rendered by MapLibre in the browser.
+      14.1 MB, z8-12, Mapbox encoding, not Terrarium.
+- [x] `infra/tiles/build.sh` rebuilds all three, takes a massif as an argument,
+      skips what exists, and runs every tool in a pinned container so nothing is
+      installed on the host and nothing is built on the shared box.
+
+`infra/tiles/README.md` carries the layer names, the encoding, the zoom ranges,
+the URLs and the two attribution strings the map screen owes: OpenStreetMap is
+ODbL and the Copernicus DEM has its own credit line.
 
 **Check:** the map loads over 3G-speed throttling without blocking first paint.
+Not yet run, because there is no map. Measured instead: a first view of Romania
+at z5 costs 274 KB, and Omu at z14 with all three sources costs 398 KB. Range
+requests are served correctly, 206 with a correct `Content-Range` on all three
+files, and compression is excluded from `/tiles/*` so a byte range stays a byte
+range.
 
 ## 5. Frontend
 
