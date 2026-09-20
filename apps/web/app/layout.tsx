@@ -40,9 +40,14 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  // The phone address bar takes the light theme's ground. The manifest carries the same
-  // value, so an installed window and a browser tab agree.
-  themeColor: '#f6f8fa',
+  // The phone address bar takes the ground of whichever scheme the system is in, so the
+  // bar does not glow white above a dark page. The manifest carries the light ground as
+  // its theme_color, so an installed window and a browser tab agree in the common case.
+  // The high contrast theme is chosen inside the app and browser chrome cannot follow it.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f6f8fa' },
+    { media: '(prefers-color-scheme: dark)', color: '#101820' },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

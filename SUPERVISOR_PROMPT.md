@@ -414,7 +414,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 | 2 | Database and seed | **done** | Eleven tables, the derived view, the provenance columns and the seed. 185 routes, 15 massifs, 31 stations, 740 season rows, idempotent. `d630375`, `300946d`, `0042df6`, `0c21040` |
 | 3 | API | **done** | Nine endpoints, one parameterised filter query, the first spatial repository, sessions and rate limiting in Redis, diacritic-insensitive search. Two known gaps recorded in `docs/phase-1.md`: stale `route_season.overall` after an edit, and an empty `route_category` |
 | 4 | Tiles | not started | Romania PMTiles, Bucegi contours, Bucegi terrain-RGB, one rebuild script |
-| 5 | Frontend | split into three, first prompt written | `CODING_PROMPT_FRONTEND_SHELL.md` covers the token layer, the three themes, the fonts, the number formatter, the middleware, `/login` and the PWA shell. Then the map and the bottom sheet, which need section 4's tiles. Then the filters and the trail page. Every one is a frontend prompt and carries the design block |
+| 5 | Frontend | shell done, two prompts left | Token layer, three themes, IBM Plex, the number formatter, the route guard, `/login`, logout and the PWA shell shipped in `40576fc`. Next: the map and the bottom sheet, which need section 4's tiles, then the filters and the trail page |
 | 6 | Quality floor | not started | Four widths, dark and high-contrast, focus, 48 px targets, one e2e test |
 
 **Done when** (from `docs/phase-1.md`):

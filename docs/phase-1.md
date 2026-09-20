@@ -140,8 +140,11 @@ phase 2, or with a hand pass before it.
 
 ## 5. Frontend
 
-- [ ] Next.js with middleware guarding every route but `/login` and `/health`.
-- [ ] PWA: manifest, installable, offline shell. No offline data yet.
+- [x] Next.js with middleware guarding every route but `/login`, `/health`, the
+      offline page, the manifest, the service worker and the icons.
+- [x] PWA: manifest, installable, offline shell. No offline data yet, and the
+      worker refuses to cache anything under `/api/`, because a stale route is a
+      lie about a mountain.
 - [ ] Country map: MapLibre, massifs shaded, switchable between share of
       network walked, routes walked, and time since last visit.
       **Empty state matters:** with no visits, every massif reads "never

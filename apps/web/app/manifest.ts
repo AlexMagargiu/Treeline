@@ -15,7 +15,9 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#f6f8fa',
-    theme_color: '#2a5f87',
+    // The ground, not the accent. An installed window's chrome matches the page it
+    // frames; an accent-coloured title bar is a brand gesture this product does not make.
+    theme_color: '#f6f8fa',
     lang: 'en',
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
