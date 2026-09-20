@@ -203,8 +203,22 @@ If a rule is wrong for this product, the divergence is argued and written into
 
 ## Testing
 
+**No browser automation, ever. No Playwright, no Puppeteer, no Selenium, no
+headless Chrome.** Do not install one, do not add one as a dependency, and do not
+reach for one to prove a screen works. The user tests the interface. A coding
+agent reports what it built and what it could not check, and the user opens the
+site.
+
+This is not a gap to work around. A screen that has to be driven by a robot to be
+believed is a screen nobody has looked at, and the checks that matter here (does
+this read at 320 px in gloves, does the shading mean anything, does the sheet feel
+right under a thumb) are not checks a browser driver makes. Type checks, lint,
+unit tests and the API end-to-end suite stay, and they run headless because they
+need no screen.
+
 - Unit tests are colocated with the code they cover.
-- End-to-end tests run against the stack, not against mocks.
+- End-to-end tests run against the stack, not against mocks. They cover the API,
+  not the interface.
 - A change is done when the types check, the lint is clean on touched files, both
   test commands pass, the migration applies to an empty database, the screen is
   correct at 320, 360, 390 and 412 px, and, for interface work, the pre-flight

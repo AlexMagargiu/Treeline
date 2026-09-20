@@ -158,6 +158,11 @@ carries, without exception:
 4. Which of the open decisions in section 7 of `docs/design.md` the screen depends on, and
    the instruction to stop rather than pick one.
 5. The pre-flight check as the last gate before reporting done.
+6. **No browser automation.** Playwright, Puppeteer, Selenium and headless Chrome are
+   forbidden, as dependencies and as tools. The user tests the interface. A frontend
+   prompt asks the agent to report what it built and what it could not verify, and to
+   state the widths and themes it could not check rather than driving a browser to fake
+   them. One agent installed Playwright on 2026-09-20 and it was removed the same day.
 
 Review a frontend deliverable against `docs/design.md` before you look at anything else.
 A screen that ships an em dash, an eyebrow label, a hover-only affordance, a target under

@@ -1,0 +1,46 @@
+/*
+ * The sheet is one element the height of its tallest rest, pushed down by the difference
+ * between that and the rest it is sitting at. Only `transform` moves, so the browser never
+ * lays the page out again mid drag.
+ *
+ * Two variables, not one. React owns `--sheet-rest` and a drag writes `--sheet-rest-drag`,
+ * so releasing a drag removes only what the drag wrote and React's value is still there
+ * underneath. One variable would mean the drag clearing React's own inline style, and a
+ * drag that ended back where it started would drop the sheet to the fallback.
+ */
+.treeline-sheet {
+  --sheet-max: 88dvh;
+  --sheet-rest: 6rem;
+
+  height: var(--sheet-max);
+  transform: translateY(calc(var(--sheet-max) - var(--sheet-rest-drag, var(--sheet-rest))));
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Tinted to the ink of the current theme, never a black drop shadow on a light ground. */
+  box-shadow: 0 -6px 24px -12px color-mix(in srgb, var(--foreground) 38%, transparent);
+}
+
+/*
+ * A transition during a drag makes the sheet lag the thumb by a fifth of a second, which
+ * reads as a broken control rather than a smooth one.
+ */
+.treeline-sheet[data-dragging='true'] {
+  transition: none;
+}
+
+/* Only the peek line is showing, so there is nothing to scroll and scrolling it would
+   move content the reader cannot see. */
+.treeline-sheet[data-rest='peek'] .treeline-sheet-body {
+  overflow-y: hidden;
+}
+
+/*
+ * MOTION_INTENSITY is 2 and this is the one motion in the product that carries meaning, so
+ * under a reduced motion preference it does not shorten, it disappears. The global rule in
+ * globals.css already zeroes every duration; this states it where the motion lives so a
+ * later edit cannot quietly reintroduce it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .treeline-sheet {
+    transition: none;
+  }
+}

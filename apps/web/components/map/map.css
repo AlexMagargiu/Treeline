@@ -1,0 +1,17 @@
+/*
+ * The map canvas is in the tab order, because MapLibre makes it focusable and pans and
+ * zooms it from the arrow keys and the plus and minus keys. That is the keyboard's way to
+ * move the map, so it needs the same visible ring every other control gets. The library's
+ * own stylesheet does not draw one.
+ */
+.treeline-map .maplibregl-canvas:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* Nothing in this app uses a MapLibre control or popup, and a stray one appearing later
+   would arrive in the library's default grey rather than in our tokens. */
+.treeline-map .maplibregl-ctrl-attrib,
+.treeline-map .maplibregl-ctrl-group {
+  display: none;
+}
