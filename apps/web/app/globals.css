@@ -1,0 +1,159 @@
+@import 'tailwindcss';
+
+/*
+ * One theme strategy, not two. The tokens below switch on [data-theme], and Tailwind's
+ * `dark` variant is pointed at the same attribute, so `dark:bg-...` and `--background`
+ * can never disagree about which theme is on. There are three themes rather than the two
+ * shadcn ships because docs/spec.md requires a high contrast mode for direct sun.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Light. A cool off-white ground and a cool near-black ink, so the neutrals sit with the
+ * topographic blue rather than fighting it. No pure black and no pure white anywhere.
+ * `--accent` is shadcn's quiet hover surface, not the brand accent: the brand accent is
+ * `--primary` and it is the same blue on every screen.
+ */
+:root {
+  --radius: 0.375rem;
+
+  --background: #f6f8fa;
+  --foreground: #16222b;
+  --card: #fcfdfe;
+  --card-foreground: #16222b;
+  --popover: #fcfdfe;
+  --popover-foreground: #16222b;
+  --primary: #2a5f87;
+  --primary-foreground: #f8fafb;
+  --secondary: #e7ecf0;
+  --secondary-foreground: #16222b;
+  --muted: #e7ecf0;
+  --muted-foreground: #4e6273;
+  --accent: #e7ecf0;
+  --accent-foreground: #16222b;
+  --destructive: #a1273b;
+  --destructive-foreground: #f8fafb;
+  --border: #d3dbe1;
+  --input: #d3dbe1;
+  --ring: #2a5f87;
+}
+
+/* Dark. The light blue the brief asked for, seen on its own ground. Read at 05:00 on a
+   train, so the ground is dark enough not to glow. */
+[data-theme='dark'] {
+  --background: #101820;
+  --foreground: #e2eaf0;
+  --card: #172230;
+  --card-foreground: #e2eaf0;
+  --popover: #172230;
+  --popover-foreground: #e2eaf0;
+  --primary: #7fc3e6;
+  --primary-foreground: #0b1219;
+  --secondary: #1f2c3a;
+  --secondary-foreground: #e2eaf0;
+  --muted: #1f2c3a;
+  --muted-foreground: #9db0c0;
+  --accent: #1f2c3a;
+  --accent-foreground: #e2eaf0;
+  --destructive: #f08c9b;
+  --destructive-foreground: #0b1219;
+  --border: #2a394a;
+  --input: #2a394a;
+  --ring: #7fc3e6;
+}
+
+/* High contrast, for a bright screen in direct sun. Borders carry the ink colour rather
+   than a tint, because a 1.3 to 1 hairline disappears outdoors. */
+[data-theme='contrast'] {
+  --background: #fdfdfd;
+  --foreground: #0a0e12;
+  --card: #fdfdfd;
+  --card-foreground: #0a0e12;
+  --popover: #fdfdfd;
+  --popover-foreground: #0a0e12;
+  --primary: #1b4a6b;
+  --primary-foreground: #fdfdfd;
+  --secondary: #e8eaec;
+  --secondary-foreground: #0a0e12;
+  --muted: #e8eaec;
+  --muted-foreground: #2a3138;
+  --accent: #e8eaec;
+  --accent-foreground: #0a0e12;
+  --destructive: #8a0c22;
+  --destructive-foreground: #fdfdfd;
+  --border: #0a0e12;
+  --input: #0a0e12;
+  --ring: #1b4a6b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+
+  /* One radius scale, all of it derived from --radius. No component carries its own. */
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before {
+    border-color: var(--border);
+  }
+
+  html {
+    /* The gate is read at 05:40 with cold hands, so nothing is smaller than this. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+
+  /* Never a hover-only affordance: every focusable thing shows the same ring whether it
+     was reached by thumb or by tab. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Collapsed to instant, not merely shortened. MOTION_INTENSITY is 2 and the only motion
+ * in this app is state feedback, so removing it costs nothing and keeps the promise the
+ * spec makes.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::after,
+  ::before {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

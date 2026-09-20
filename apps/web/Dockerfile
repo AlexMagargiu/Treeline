@@ -22,6 +22,9 @@ ENV HOSTNAME=0.0.0.0
 # standalone carries its own traced node_modules, so none are copied in.
 COPY --from=build --chown=node:node /app/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /app/apps/web/.next/static apps/web/.next/static
+# The standalone build traces imports, and nothing imports public/, so Next leaves it out
+# and the service worker and the icons would be missing from the image.
+COPY --from=build --chown=node:node /app/apps/web/public apps/web/public
 USER node
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]
