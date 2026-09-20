@@ -80,7 +80,7 @@ POSTGRES_PASSWORD=<a long random string>
 POSTGRES_DB=treeline
 REDIS_URL=redis://redis:6379
 SEED_OWNER_ID=00000000-0000-0000-0000-000000000001
-TREELINE_PASSWORD_HASH=<the hash from step 6a>
+TREELINE_PASSWORD_HASH='<the hash from step 6a>'   # the single quotes matter, see 6a
 SESSION_COOKIE_NAME=treeline_session
 SESSION_TTL_DAYS=30
 LOGIN_MAX_ATTEMPTS=5
@@ -121,9 +121,23 @@ Prints one line beginning `$argon2id$v=19$m=19456,t=2,p=1$`. Paste that line int
 password manager. The hash is safe to put in a file with mode 600; the password is not
 safe anywhere.
 
-Two things to watch. The hash contains `$` characters, so it goes into the file inside
-the quoted heredoc above, where the shell does not expand them, and it is never echoed
-into a terminal you keep. And changing the hash logs nobody out: sessions live in Redis
+Three things to watch, and the first one will lock you out of your own site if you miss
+it. **Wrap the hash in single quotes inside `.env`.** The hash contains `$` and Compose
+interpolates `$` in `.env` values, so an unquoted hash is read as the variables
+`$argon2id`, `$v`, `$m` and the salt, each substituted with an empty string. Measured on
+2026-09-20:
+
+```
+unquoted:      warning: The "argon2id" variable is not set. Defaulting to a blank string.
+               warning: The "m" variable is not set. Defaulting to a blank string.
+single quoted: HASH=$argon2id$v=19$m=19456,t=2,p=1$...   (the container gets it intact)
+```
+
+The API then compares every password against a mangled hash and nobody can log in, with
+nothing in the logs that names the cause. The quoted heredoc above protects the value from
+the shell; the single quotes protect it from Compose. You need both.
+
+Second, it is never echoed into a terminal you keep. And changing the hash logs nobody out: sessions live in Redis
 and last thirty days. To end every session at once, `docker compose exec redis redis-cli
 --scan --pattern 'session:*' | xargs -r docker compose exec -T redis redis-cli del`.
 
