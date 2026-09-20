@@ -151,6 +151,35 @@ The first two are near-zero at launch and will stay dark for Făgăraș for a de
 
 Massif polygons are not official and they overlap, so draw them once, accept they are approximate, and fix one rule: **a route belongs to the massif of its key point.** Nothing then lands in two.
 
+**The map becomes three dimensional. Decided on 2026-09-20, after seeing the flat one.**
+
+The country view is Romania as a relief body in the centre of the screen, its neighbours
+greyed to a neutral, the land coloured by altitude rather than by a metric: green valleys,
+tan uplands, grey rock, white above the treeline. Clicking a massif zooms into it and the
+relief resolves further. Once routes carry geometry, the trails are drawn into that scene
+rather than onto a flat plane.
+
+All of it is native to the pinned MapLibre: `terrain` for the relief, `color-relief` for
+the hypsometric ramp off the same Copernicus tiles the hillshade already uses, `globe` for
+the framing, and a mask polygon for the neighbours. It needs terrain tiles for the whole
+country, roughly 220 MB at zoom 10 and 880 MB at zoom 11, one run of `infra/tiles/build.sh`.
+
+Three things fix the order of work. **Trails cannot be in the scene until they have
+geometry**, which is the phase 2 OpenStreetMap import; today zero of the 185 routes carry a
+line. **Satellite imagery is rejected**, not deferred: the only self-hostable source is
+CC BY-NC-SA and runs to tens of gigabytes, Google, Bing and Mapbox forbid self-hosting
+outright, and altitude colouring gives the same read from data already owned and already
+offline. **The sections stay the 15 massifs** until a set of walking regions that actually
+tile the country is drawn by hand; counties were considered and rejected, because an
+administrative border has nothing to do with where anybody walks and 26 of the 42 hold no
+routes.
+
+Phase 1 ships the flat version with the choropleth described above, and the rebuild happens
+after the filters and the trail page close phase 1. Nothing in the flat one is wasted: the
+sheet, the navigation flow and the massif data all carry over. One caveat travels with the
+decision: 3D terrain is GPU work on every frame, and this is a phone instrument where
+battery is a safety matter, so where the relief applies is a decision in its own right.
+
 Do not ask for location on launch. A dot over Bucharest at country zoom tells you nothing and spends the permission at the worst moment. Ask when it first earns something: starting a session, or a "near me" action. At country zoom, travel time from your access point is the more useful thing to show.
 
 ### Filters
