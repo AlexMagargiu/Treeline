@@ -413,7 +413,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 | 1 | Infrastructure | prompt written | `CODING_PROMPT_INFRA.md`. Compose, Caddy, Actions, volumes, backups, and the deploy. Hardening left out on purpose, see "Deployment and servers". The host is the shared Hetzner box; the user runs every command against it |
 | 2 | Database and seed | **done** | Eleven tables, the derived view, the provenance columns and the seed. 185 routes, 15 massifs, 31 stations, 740 season rows, idempotent. `d630375`, `300946d`, `0042df6`, `0c21040` |
 | 3 | API | **done** | Nine endpoints, one parameterised filter query, the first spatial repository, sessions and rate limiting in Redis, diacritic-insensitive search. Two known gaps recorded in `docs/phase-1.md`: stale `route_season.overall` after an edit, and an empty `route_category` |
-| 4 | Tiles | not started | Romania PMTiles, Bucegi contours, Bucegi terrain-RGB, one rebuild script |
+| 4 | Tiles | prompt written | `CODING_PROMPT_TILES.md`. Romania PMTiles by `pmtiles extract` rather than a Planetiler run, Bucegi contours and terrain from the Copernicus DEM, one rebuild script, and Caddy serving the `tiles` volume by range request. Built locally, never on the shared box |
 | 5 | Frontend | shell done, two prompts left | Token layer, three themes, IBM Plex, the number formatter, the route guard, `/login`, logout and the PWA shell shipped in `40576fc`. Next: the map and the bottom sheet, which need section 4's tiles, then the filters and the trail page |
 | 6 | Quality floor | not started | Four widths, dark and high-contrast, focus, 48 px targets, one e2e test |
 
