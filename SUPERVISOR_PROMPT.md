@@ -414,7 +414,7 @@ The authority is `docs/phase-1.md`. This table tracks it; it does not replace it
 | 2 | Database and seed | **done** | Eleven tables, the derived view, the provenance columns and the seed. 185 routes, 15 massifs, 31 stations, 740 season rows, idempotent. `d630375`, `300946d`, `0042df6`, `0c21040` |
 | 3 | API | **done** | Nine endpoints, one parameterised filter query, the first spatial repository, sessions and rate limiting in Redis, diacritic-insensitive search. Two known gaps recorded in `docs/phase-1.md`: stale `route_season.overall` after an edit, and an empty `route_category` |
 | 4 | Tiles | **done** | Romania basemap 643 MB, Bucegi contours 7.8 MB and terrain 14.1 MB, 635 MiB of the 15 GB budget. `infra/tiles/build.sh` rebuilds any massif in pinned containers. Caddy serves them by range request with compression excluded |
-| 5 | Frontend | shell done, two prompts left | Token layer, three themes, IBM Plex, the number formatter, the route guard, `/login`, logout and the PWA shell shipped in `40576fc`. Next: the map and the bottom sheet, which need section 4's tiles, then the filters and the trail page |
+| 5 | Frontend | shell done, map prompt written | Shell shipped in `40576fc`. `CODING_PROMPT_FRONTEND_MAP.md` covers the map, the massif shading and the bottom sheet. Then the filters and the trail page. Two spec questions settled on 2026-09-20: shade by routes known with no switch, and the map opens clean |
 | 6 | Quality floor | not started | Four widths, dark and high-contrast, focus, 48 px targets, one e2e test |
 
 **Done when** (from `docs/phase-1.md`):

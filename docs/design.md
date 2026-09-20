@@ -227,6 +227,25 @@ All three are closed. A frontend coding prompt no longer has anything to stop on
 Anything else the spec does not describe still stops a coding agent. These three no longer
 do.
 
+## 7a. Two screen decisions settled on 2026-09-20
+
+Recorded here because they answer questions `docs/spec.md` asks outright, and a coding
+agent reading the spec alone would stop on both.
+
+**The country map shades by routes known, and carries no switch.** The spec offers three
+measures and defaults to time since you were last there, which is the one that helps you
+choose where to go. In phase 1 all three are dead: routes walked and share of network
+walked are zero for all 15 massifs, and last visited is null for all of them, because
+`visit` arrives in phase 4. A three-way switch whose options cannot be chosen is worse than
+none, and fifteen massifs reading "never visited" is the discouraging first screen trap 3
+warns about. The legend states what is being shaded. The switch arrives with the first
+visit.
+
+**The map opens clean, with the sheet at its lowest rest.** The spec proposes opening at
+"candidates for next weekend" and asks for confirmation. That ranking needs daylight,
+departures and forecast, all of which are phase 6, so phase 1 cannot compute it. A sheet
+resting on a list that only pretends to be ranked is worse than a map.
+
 ## 8. Paste this block into every frontend coding prompt
 
 The supervisor copies this verbatim into the "Design" section of any
